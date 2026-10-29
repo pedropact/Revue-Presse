@@ -52,6 +52,8 @@ class Sujet:
     pertinence: float = 0.0
     score: float = 0.0
     titre: str = ""
+    chapeau: str = ""
+    points: list[str] = field(default_factory=list)
     resume: str = ""
 
     @property

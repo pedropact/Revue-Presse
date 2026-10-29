@@ -23,7 +23,9 @@ def date_longue(d: datetime) -> str:
 def vers_dict(s: Sujet) -> dict:
     return {
         "titre": s.titre,
-        "resume": s.resume,
+        "chapeau": s.chapeau,
+        "points": s.points,
+        "texte": s.resume,
         "sources": [
             {"nom": a.source, "titre": a.titre, "lien": a.lien, "langue": a.langue,
              "publie": a.publie.isoformat()}
@@ -50,10 +52,10 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
 
     e = html.escape
     nav, sections = [], []
-    for t in donnees["themes"]:
-        nav.append(f'<a href="#{t["id"]}">{e(t["titre"])}</a>')
-        items = []
-        for s in t["sujets"]:
+    for t, sec in zip(donnees["themes"], config["sections"]):
+        nav.append(f'<a href="#{t["id"]}">{e(sec.get("court", t["titre"]))}</a>')
+        cartes = []
+        for n, s in enumerate(t["sujets"], 1):
             # Un lien par média (l'article le plus récent), même s'il a publié plusieurs articles
             par_media = {}
             for src in s["sources"]:
@@ -63,14 +65,19 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
                 f'{e(src["nom"])}{" (EN)" if src["langue"] == "en" else ""}</a>'
                 for src in par_media.values()
             )
-            nb = len({src["nom"] for src in s["sources"]})
+            nb = len(par_media)
             badge = f'<span class="badge">{nb} médias</span>' if nb > 1 else ""
-            paragraphes = "".join(f"<p>{e(par.strip())}</p>" for par in s["resume"].split("\n") if par.strip())
-            items.append(
-                f'<li><h3>{e(s["titre"])} {badge}</h3>{paragraphes}'
-                f'<p class="sources">{liens}</p></li>'
+            chapeau = f'<p class="chapeau">{e(s["chapeau"])}</p>' if s["chapeau"] else ""
+            points = ("<ul class=\"points\">" + "".join(f"<li>{e(p)}</li>" for p in s["points"]) + "</ul>") if s["points"] else ""
+            paragraphes = "".join(f"<p>{e(p.strip())}</p>" for p in s["texte"].split("\n") if p.strip())
+            suite = (f'<details><summary>Lire la suite</summary><div class="texte">{paragraphes}</div></details>'
+                     if paragraphes else "")
+            cartes.append(
+                f'<article class="carte"><div class="meta"><span class="num">{n}</span>{badge}</div>'
+                f'<h3>{e(s["titre"])}</h3>{chapeau}{points}{suite}'
+                f'<p class="sources">Sources : {liens}</p></article>'
             )
-        contenu = "<ol>" + "".join(items) + "</ol>" if items else '<p class="vide">Aucune nouvelle marquante aujourd\'hui.</p>'
+        contenu = "".join(cartes) if cartes else '<p class="vide">Aucune nouvelle marquante aujourd\'hui.</p>'
         sections.append(f'<section id="{t["id"]}"><h2>{e(t["titre"])}</h2>{contenu}</section>')
 
     heure = maintenant.astimezone(FUSEAU).strftime("%H h %M")

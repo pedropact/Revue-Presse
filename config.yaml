@@ -110,15 +110,15 @@ sources:
 #               tous    -> Canada et Québec confondus
 #   nb        : nombre de sujets affichés
 sections:
-  - {id: economie-canada,  titre: "Économie — Canada",                       categorie: economie,      portee: canada, nb: 3}
-  - {id: economie-quebec,  titre: "Économie — Québec",                       categorie: economie,      portee: quebec, nb: 3}
-  - {id: politique-canada, titre: "Canada — Gouvernement et politique",      categorie: politique,     portee: canada, nb: 3}
-  - {id: politique-quebec, titre: "Québec — Gouvernement et politique",      categorie: politique,     portee: quebec, nb: 3}
-  - {id: international,    titre: "Relations extérieures",                   categorie: international, portee: tous,   nb: 4}
-  - {id: sante,            titre: "Santé — Canada et Québec",                categorie: sante,         portee: tous,   nb: 3}
-  - {id: environnement,    titre: "Environnement — Canada et Québec",        categorie: environnement, portee: tous,   nb: 3}
-  - {id: immigration,      titre: "Immigration — Canada et Québec",          categorie: immigration,   portee: tous,   nb: 3}
-  - {id: securite,         titre: "Sécurité — Canada et Québec",             categorie: securite,      portee: tous,   nb: 3}
+  - {id: economie-canada, court: "Éco Canada",  titre: "Économie — Canada",                       categorie: economie,      portee: canada, nb: 3}
+  - {id: economie-quebec, court: "Éco Québec",  titre: "Économie — Québec",                       categorie: economie,      portee: quebec, nb: 3}
+  - {id: politique-canada, court: "Politique Canada", titre: "Canada — Gouvernement et politique",      categorie: politique,     portee: canada, nb: 3}
+  - {id: politique-quebec, court: "Politique Québec", titre: "Québec — Gouvernement et politique",      categorie: politique,     portee: quebec, nb: 3}
+  - {id: international, court: "International",    titre: "Relations extérieures",                   categorie: international, portee: tous,   nb: 4}
+  - {id: sante, court: "Santé",            titre: "Santé — Canada et Québec",                categorie: sante,         portee: tous,   nb: 3}
+  - {id: environnement, court: "Environnement",    titre: "Environnement — Canada et Québec",        categorie: environnement, portee: tous,   nb: 3}
+  - {id: immigration, court: "Immigration",      titre: "Immigration — Canada et Québec",          categorie: immigration,   portee: tous,   nb: 3}
+  - {id: securite, court: "Sécurité",         titre: "Sécurité — Canada et Québec",             categorie: securite,      portee: tous,   nb: 3}
 
 # Chaque catégorie est décrite par quelques phrases (FR et EN) : le modèle d'embeddings
 # compare chaque article à ces descriptions. Les mots-clés donnent un bonus.

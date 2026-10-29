@@ -14,15 +14,17 @@ from analyse import Sujet
 log = logging.getLogger(__name__)
 
 SYSTEME = (
-    "Tu es un journaliste québécois qui rédige une revue de presse en français. "
-    "On te donne un ou plusieurs articles (en français ou en anglais) portant sur le même sujet. "
-    "Rédige en français, avec tes propres mots, un titre neutre et un texte de 2 à 3 paragraphes "
-    "qui fusionne l'information de tous les articles : d'abord les faits essentiels (qui, quoi, "
-    "quand, où), puis le contexte, les chiffres et les réactions, et enfin les conséquences "
-    "ou les prochaines étapes. Ne recopie pas les phrases des articles. "
+    "Tu es un journaliste québécois qui rédige une revue de presse en français, agréable à lire "
+    "sur un téléphone. On te donne un ou plusieurs articles (en français ou en anglais) portant "
+    "sur le même sujet. Fusionne l'information de tous les articles et rédige, en français et "
+    "avec tes propres mots (ne recopie pas les phrases des articles) :\n"
+    "- titre : un titre neutre et informatif (12 mots maximum);\n"
+    "- chapeau : une seule phrase (30 mots maximum) qui dit l'essentiel;\n"
+    "- points : 3 points clés très courts (15 mots maximum chacun), avec les chiffres importants;\n"
+    "- texte : 2 ou 3 paragraphes courts (3 phrases maximum chacun) : contexte, réactions, "
+    "conséquences ou prochaines étapes. Sépare les paragraphes par une ligne vide.\n"
     "N'invente aucun fait, aucun chiffre ni aucune citation. "
-    "Sépare les paragraphes par une ligne vide. "
-    'Réponds uniquement en JSON : {"titre": "...", "resume": "..."}'
+    'Réponds uniquement en JSON : {"titre": "...", "chapeau": "...", "points": ["...", "...", "..."], "texte": "..."}'
 )
 
 
@@ -39,7 +41,9 @@ def preparer(sujet: Sujet, max_articles: int) -> str:
 def appliquer(sujet: Sujet, reponse: str) -> None:
     data = json.loads(reponse)
     sujet.titre = data["titre"].strip()
-    sujet.resume = data["resume"].strip()
+    sujet.chapeau = str(data.get("chapeau", "")).strip()
+    sujet.points = [str(p).strip() for p in data.get("points", []) if str(p).strip()][:4]
+    sujet.resume = str(data.get("texte") or data.get("resume") or "").strip()
 
 
 class ResumeurLocal:
@@ -61,7 +65,7 @@ class ResumeurLocal:
                 {"role": "user", "content": preparer(sujet, max_articles)},
             ],
             temperature=0.2,
-            max_tokens=900,
+            max_tokens=1000,
             response_format={"type": "json_object"},
         )
         appliquer(sujet, r["choices"][0]["message"]["content"])
@@ -136,4 +140,4 @@ def resume_sans_ia(sujet: Sujet) -> None:
     """Repli : titre et chapeau d'un article francophone si possible."""
     fr = [a for a in sujet.articles if a.langue == "fr"] or sujet.articles
     a = max(fr, key=lambda a: len(a.chapeau))
-    sujet.titre, sujet.resume = a.titre, a.chapeau[:600]
+    sujet.titre, sujet.chapeau = a.titre, a.chapeau[:600]
