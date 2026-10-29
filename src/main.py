@@ -62,12 +62,13 @@ def main() -> None:
         list(ex.map(lambda a: extraire_texte(a, g["max_caracteres_article"]), a_extraire))
 
     resumeur = None if args.sans_ia else Resumeur(config)
-    for i, s in enumerate(retenus, 1):
-        log.info("[%d/%d] %s — %d articles, %d médias", i, len(retenus), s.theme, len(s.articles), len(s.sources))
+    for section, sujets in par_theme.items():
+        log.info("%s : %d sujets", section, len(sujets))
         if resumeur:
-            resumeur.resumer(s, g["max_articles_par_resume"])
+            resumeur.resumer_section(sujets, g["max_articles_par_resume"])
         else:
-            resume_sans_ia(s)
+            for s in sujets:
+                resume_sans_ia(s)
 
     if resumeur and os.getenv("GITHUB_ACTIONS"):
         print("::notice::Résumés : " + ", ".join(f"{k} {v}" if v else k for k, v in resumeur.bilan.items()))

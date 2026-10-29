@@ -12,8 +12,9 @@ general:
 modeles:
   # Résumés par Google Gemini (secret GEMINI_API_KEY dans GitHub). Sans clé, ou en cas
   # d'échec, le modèle local ci-dessous est utilisé.
-  gemini_modele: gemini-flash-latest
-  gemini_requetes_par_minute: 8   # le forfait gratuit limite le nombre de requêtes par minute
+  # Un appel par section (~10 par jour). Si le premier modèle atteint son quota, on passe au suivant.
+  gemini_modeles: [gemini-flash-latest, gemini-flash-lite-latest]
+  gemini_requetes_par_minute: 4   # le forfait gratuit limite le nombre de requêtes par minute
   embeddings: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
   # Modèle de résumé (GGUF, exécuté sur CPU via llama.cpp).
   # Pour une meilleure qualité (mais ~2x plus lent) :

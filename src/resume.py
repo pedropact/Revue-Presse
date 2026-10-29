@@ -28,6 +28,16 @@ SYSTEME = (
 )
 
 
+SYSTEME_LOT = SYSTEME.replace(
+    "On te donne un ou plusieurs articles (en français ou en anglais) portant sur le même sujet.",
+    "On te donne plusieurs SUJETS numérotés; chaque sujet regroupe un ou plusieurs articles "
+    "(en français ou en anglais) portant sur la même nouvelle. Traite chaque sujet séparément.",
+).split("Réponds uniquement")[0] + (
+    'Réponds uniquement en JSON : {"sujets": [{"id": 1, "titre": "...", "chapeau": "...", '
+    '"points": ["...", "...", "..."], "texte": "..."}, ...]} avec un élément par sujet.'
+)
+
+
 def preparer(sujet: Sujet, max_articles: int) -> str:
     # Priorité aux articles avec texte complet, puis aux plus récents
     choisis = sorted(sujet.articles, key=lambda a: (len(a.texte), a.publie), reverse=True)[:max_articles]
@@ -71,38 +81,69 @@ class ResumeurLocal:
         appliquer(sujet, r["choices"][0]["message"]["content"])
 
 
+class QuotaEpuise(Exception):
+    pass
+
+
 class ResumeurGemini:
+    """Un seul appel par section (quelques sujets à la fois) pour rester dans le forfait gratuit."""
+
     URL = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
 
     def __init__(self, config: dict, cle: str):
-        self.modele = config["modeles"]["gemini_modele"]
-        self.pause = 60 / config["modeles"]["gemini_requetes_par_minute"]
+        m = config["modeles"]
+        self.modeles = list(m["gemini_modeles"])
+        self.pause = 60 / m["gemini_requetes_par_minute"]
         self.cle = cle
         self.dernier = 0.0
 
-    def resumer(self, sujet: Sujet, max_articles: int) -> None:
+    def appeler(self, modele: str, texte: str) -> str:
         corps = {
-            "systemInstruction": {"parts": [{"text": SYSTEME}]},
-            "contents": [{"role": "user", "parts": [{"text": preparer(sujet, max_articles)}]}],
+            "systemInstruction": {"parts": [{"text": SYSTEME_LOT}]},
+            "contents": [{"role": "user", "parts": [{"text": texte}]}],
             "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
         }
-        for essai in range(4):
+        for essai in range(2):
             # Respecte la limite de requêtes par minute du forfait gratuit
             attente = self.dernier + self.pause - time.monotonic()
             if attente > 0:
                 time.sleep(attente)
             self.dernier = time.monotonic()
-            r = requests.post(self.URL.format(self.modele), json=corps, timeout=120,
+            r = requests.post(self.URL.format(modele), json=corps, timeout=300,
                               headers={"x-goog-api-key": self.cle})
-            if r.status_code in (429, 500, 503):
-                log.info("Gemini occupé (%s), nouvel essai dans %d s", r.status_code, 20 * (essai + 1))
-                time.sleep(20 * (essai + 1))
-                continue
-            r.raise_for_status()
-            parts = r.json()["candidates"][0]["content"]["parts"]
-            appliquer(sujet, "".join(p["text"] for p in parts if not p.get("thought")))
-            return
-        raise RuntimeError("Gemini indisponible après plusieurs essais")
+            if r.ok:
+                parts = r.json()["candidates"][0]["content"]["parts"]
+                return "".join(p["text"] for p in parts if not p.get("thought"))
+            detail = f"{modele} HTTP {r.status_code} : {r.text[:200]}"
+            if r.status_code == 429 and "PerDay" in r.text:
+                raise QuotaEpuise(detail)
+            if r.status_code not in (429, 500, 503) or essai == 1:
+                raise RuntimeError(detail)
+            log.info("Gemini occupé (%s), nouvel essai dans 30 s", r.status_code)
+            time.sleep(30)
+
+    def resumer_lot(self, sujets: list[Sujet], max_articles: int) -> list[Sujet]:
+        """Résume les sujets; renvoie ceux qui n'ont pas pu l'être."""
+        texte = "\n\n".join(
+            f"======== SUJET {i} ========\n{preparer(s, max_articles)}" for i, s in enumerate(sujets, 1)
+        )
+        while self.modeles:
+            try:
+                reponse = json.loads(self.appeler(self.modeles[0], texte))
+                break
+            except QuotaEpuise as e:
+                log.warning("Quota quotidien épuisé : %s", e)
+                self.modeles.pop(0)  # on passe au modèle suivant (ex. Flash-Lite)
+        else:
+            raise QuotaEpuise("tous les modèles Gemini ont atteint leur quota")
+        restants = []
+        resultats = {int(r.get("id", 0)): r for r in reponse.get("sujets", [])}
+        for i, s in enumerate(sujets, 1):
+            try:
+                appliquer(s, json.dumps(resultats[i]))
+            except (KeyError, TypeError, ValueError):
+                restants.append(s)
+        return restants
 
 
 class Resumeur:
@@ -116,15 +157,21 @@ class Resumeur:
         self.bilan = Counter()
         log.info("Résumés : %s", "Google Gemini" if self.gemini else "modèle local")
 
-    def resumer(self, sujet: Sujet, max_articles: int) -> None:
-        if self.gemini:
+    def resumer_section(self, sujets: list[Sujet], max_articles: int) -> None:
+        restants = sujets
+        if self.gemini and sujets:
             try:
-                self.gemini.resumer(sujet, max_articles)
-                self.bilan["Gemini"] += 1
-                return
+                restants = self.gemini.resumer_lot(sujets, max_articles)
+                self.bilan["Gemini"] += len(sujets) - len(restants)
             except Exception as e:
                 log.warning("Gemini a échoué (%s), repli sur le modèle local", e)
-                self.bilan["erreur Gemini : " + str(e)[:120]] += 0
+                self.bilan["erreur Gemini : " + str(e)[:250]] += 0
+                if isinstance(e, QuotaEpuise):
+                    self.gemini = None
+        for s in restants:
+            self.resumer_local(s, max_articles)
+
+    def resumer_local(self, sujet: Sujet, max_articles: int) -> None:
         try:
             if self.local is None:
                 self.local = ResumeurLocal(self.config)
