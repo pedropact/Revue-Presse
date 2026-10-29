@@ -2,7 +2,9 @@
 
 import html
 import logging
+import os
 import re
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -80,12 +82,29 @@ def lire_flux(source: dict, flux: dict, limite: datetime) -> list[Article]:
     return articles
 
 
+def resumer_flux(taches: list, resultats: list) -> None:
+    """Dans GitHub Actions, affiche le bilan des flux dans le résumé de l'exécution."""
+    if not os.getenv("GITHUB_ACTIONS"):
+        return
+    par_source = Counter()
+    vides = []
+    for (source, flux), lot in zip(taches, resultats):
+        par_source[source["nom"]] += len(lot)
+        if not lot:
+            vides.append(flux["url"])
+    print("::notice::Articles par source : " + ", ".join(f"{s} {n}" for s, n in par_source.items()))
+    if vides:
+        print("::warning::Flux vides ou inaccessibles : " + " ".join(vides))
+
+
 def collecter(config: dict) -> list[Article]:
     limite = datetime.now(timezone.utc) - timedelta(hours=config["general"]["fenetre_heures"])
     taches = [(s, f) for s in config["sources"] for f in s["flux"]]
     with ThreadPoolExecutor(max_workers=8) as ex:
         resultats = ex.map(lambda sf: lire_flux(*sf, limite), taches)
     # Un même article apparaît souvent dans plusieurs flux d'un même site
+    resultats = list(resultats)
+    resumer_flux(taches, resultats)
     vus, articles = {}, []
     for a in (a for lot in resultats for a in lot):
         cle = a.lien.split("?")[0]

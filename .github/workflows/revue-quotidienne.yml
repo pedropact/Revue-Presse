@@ -24,9 +24,9 @@ jobs:
       HF_HOME: /home/runner/.cache/huggingface
       FASTEMBED_CACHE_PATH: /home/runner/.cache/fastembed
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -54,6 +54,12 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           PROJET: ${{ vars.CF_PROJET || 'revue-presse' }}
         run: |
+          set -o pipefail
           # Crée le projet la première fois (sans effet s'il existe déjà)
           npx --yes wrangler@4 pages project create "$PROJET" --production-branch=main || true
-          npx --yes wrangler@4 pages deploy public --project-name="$PROJET" --branch=main
+          # En cas d'échec, les dernières lignes sont affichées dans le résumé de l'exécution
+          if ! npx --yes wrangler@4 pages deploy public --project-name="$PROJET" --branch=main 2>&1 | tee deploy.log; then
+            tail -n 8 deploy.log | sed 's/\x1b\[[0-9;]*m//g' | while IFS= read -r l; do [ -n "$l" ] && echo "::error::$l"; done
+            exit 1
+          fi
+          grep -o 'https://[^ ]*pages.dev' deploy.log | tail -1 | sed 's/^/::notice::Site publié : /'
