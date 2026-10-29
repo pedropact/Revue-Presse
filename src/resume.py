@@ -162,6 +162,9 @@ class Resumeur:
         if self.gemini and sujets:
             try:
                 restants = self.gemini.resumer_lot(sujets, max_articles)
+                if restants:
+                    # Gemini a parfois oublié un sujet du lot : un second essai pour ceux-là seulement
+                    restants = self.gemini.resumer_lot(restants, max_articles)
                 self.bilan["Gemini"] += len(sujets) - len(restants)
             except Exception as e:
                 log.warning("Gemini a échoué (%s), repli sur le modèle local", e)
@@ -181,6 +184,7 @@ class Resumeur:
             log.warning("Résumé impossible (%s), utilisation du texte RSS", e)
             resume_sans_ia(sujet)
             self.bilan["sans IA"] += 1
+            self.bilan["erreur modèle local : " + str(e)[:200]] += 0
 
 
 def resume_sans_ia(sujet: Sujet) -> None:
