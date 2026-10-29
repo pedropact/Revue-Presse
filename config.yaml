@@ -8,7 +8,7 @@ general:
   seuil_theme: 0.33           # similarité minimale pour classer un article dans un thème
   seuil_regroupement: 0.70    # similarité minimale (titres) pour considérer deux articles comme le même sujet
   max_articles_par_resume: 4  # articles envoyés au modèle pour produire un résumé fusionné
-  max_caracteres_article: 1500
+  max_caracteres_article: 2500
 
 modeles:
   embeddings: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
@@ -17,7 +17,7 @@ modeles:
   #   repo: Qwen/Qwen2.5-3B-Instruct-GGUF  /  fichier: qwen2.5-3b-instruct-q4_k_m.gguf
   llm_repo: Qwen/Qwen2.5-1.5B-Instruct-GGUF
   llm_fichier: qwen2.5-1.5b-instruct-q4_k_m.gguf
-  llm_contexte: 4096
+  llm_contexte: 8192
 
 # paywall: true  -> on n'utilise que le titre et le chapeau fournis par le flux RSS
 # theme: (optionnel) indice de thème pour un flux de section, donne un léger bonus
@@ -95,7 +95,7 @@ sources:
     langue: en
     paywall: true
     flux:
-      - url: https://montrealgazette.com/feed
+      - url: https://montrealgazette.com/feed/
 
   - nom: The Globe and Mail
     langue: en

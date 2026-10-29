@@ -61,8 +61,9 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
             )
             nb = len({src["nom"] for src in s["sources"]})
             badge = f'<span class="badge">{nb} médias</span>' if nb > 1 else ""
+            paragraphes = "".join(f"<p>{e(par.strip())}</p>" for par in s["resume"].split("\n") if par.strip())
             items.append(
-                f'<li><h3>{e(s["titre"])} {badge}</h3><p>{e(s["resume"])}</p>'
+                f'<li><h3>{e(s["titre"])} {badge}</h3>{paragraphes}'
                 f'<p class="sources">{liens}</p></li>'
             )
         contenu = "<ol>" + "".join(items) + "</ol>" if items else '<p class="vide">Aucune nouvelle marquante aujourd\'hui.</p>'

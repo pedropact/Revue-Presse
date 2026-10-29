@@ -11,8 +11,12 @@ log = logging.getLogger(__name__)
 SYSTEME = (
     "Tu es un journaliste québécois qui rédige une revue de presse en français. "
     "On te donne un ou plusieurs articles (en français ou en anglais) portant sur le même sujet. "
-    "Rédige en français un titre neutre et un résumé factuel de 3 à 4 phrases qui fusionne "
-    "l'information de tous les articles. N'invente aucun fait, aucun chiffre ni aucune citation. "
+    "Rédige en français, avec tes propres mots, un titre neutre et un texte de 2 à 3 paragraphes "
+    "qui fusionne l'information de tous les articles : d'abord les faits essentiels (qui, quoi, "
+    "quand, où), puis le contexte, les chiffres et les réactions, et enfin les conséquences "
+    "ou les prochaines étapes. Ne recopie pas les phrases des articles. "
+    "N'invente aucun fait, aucun chiffre ni aucune citation. "
+    "Sépare les paragraphes par une ligne vide. "
     'Réponds uniquement en JSON : {"titre": "...", "resume": "..."}'
 )
 
@@ -44,7 +48,7 @@ class Resumeur:
                     {"role": "user", "content": "\n\n".join(blocs)},
                 ],
                 temperature=0.2,
-                max_tokens=350,
+                max_tokens=900,
                 response_format={"type": "json_object"},
             )
             data = json.loads(r["choices"][0]["message"]["content"])
