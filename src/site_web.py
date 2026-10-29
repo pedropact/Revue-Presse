@@ -54,10 +54,14 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
         nav.append(f'<a href="#{t["id"]}">{e(t["titre"])}</a>')
         items = []
         for s in t["sujets"]:
+            # Un lien par média (l'article le plus récent), même s'il a publié plusieurs articles
+            par_media = {}
+            for src in s["sources"]:
+                par_media.setdefault(src["nom"], src)
             liens = " · ".join(
                 f'<a href="{e(src["lien"])}" target="_blank" rel="noopener" title="{e(src["titre"])}">'
                 f'{e(src["nom"])}{" (EN)" if src["langue"] == "en" else ""}</a>'
-                for src in s["sources"]
+                for src in par_media.values()
             )
             nb = len({src["nom"] for src in s["sources"]})
             badge = f'<span class="badge">{nb} médias</span>' if nb > 1 else ""

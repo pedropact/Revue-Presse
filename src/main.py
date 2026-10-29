@@ -8,6 +8,7 @@ Usage :
 
 import argparse
 import logging
+import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -67,6 +68,9 @@ def main() -> None:
             resumeur.resumer(s, g["max_articles_par_resume"])
         else:
             resume_sans_ia(s)
+
+    if resumeur and os.getenv("GITHUB_ACTIONS"):
+        print("::notice::Résumés : " + ", ".join(f"{k} {v}" if v else k for k, v in resumeur.bilan.items()))
 
     generer(par_theme, config, args.sortie, RACINE / "site")
     log.info("Site généré dans %s", args.sortie)

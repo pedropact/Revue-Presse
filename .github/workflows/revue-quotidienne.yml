@@ -65,6 +65,8 @@ jobs:
           restore-keys: modeles-
 
       - name: Générer la revue de presse
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python src/main.py ${{ inputs.sans_ia && '--sans-ia' || '' }}
 
       - name: Publier sur Cloudflare Pages

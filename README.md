@@ -11,7 +11,7 @@ App que, uma vez por dia, lê notícias de sites do Quebec e do Canadá (em fran
 3. **Agrupamento**: notícias com títulos semanticamente próximos, em FR ou EN, viram um único "sujet".
 4. **Ranking**: número de veículos diferentes que cobriram o fato + recência + pertinência ao tema.
 5. **Texto completo**: baixado só para as notícias selecionadas e só de sites sem paywall. Para os sites com paywall, usa-se o título e a chamada do RSS.
-6. **Resumo** (`src/resume.py`): Qwen2.5‑1.5B‑Instruct (GGUF, CPU via llama.cpp) escreve título + resumo em francês, fundindo as fontes.
+6. **Resumo** (`src/resume.py`): o **Google Gemini** (plano gratuito, segredo `GEMINI_API_KEY`) escreve título + 2–3 parágrafos em francês, fundindo as fontes. Sem chave, ou se o Gemini falhar, usa o modelo local Qwen2.5‑1.5B (CPU via llama.cpp).
 7. **Site** (`src/site_web.py`): gera `public/` (HTML + `data.json` + PWA), publicado via `wrangler`.
 
 ## Instalação (uma vez só, ~15 min)
@@ -29,6 +29,7 @@ App que, uma vez por dia, lê notícias de sites do Quebec e do Canadá (em fran
 Em *Settings → Secrets and variables → Actions → New repository secret*, crie:
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
+- `GEMINI_API_KEY`: chave gratuita criada em https://aistudio.google.com/apikey
 
 Opcional: crie a variável (aba *Variables*) `CF_PROJET` para mudar o nome do projeto. O nome padrão é `revue-presse`, e ele define o endereço `https://revue-presse.pages.dev`. Se esse nome já estiver em uso no Cloudflare, escolha outro.
 
