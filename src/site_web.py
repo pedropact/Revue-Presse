@@ -78,7 +78,11 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
                 f'<p class="sources">Sources : {liens}</p></article>'
             )
         contenu = "".join(cartes) if cartes else '<p class="vide">Aucune nouvelle marquante aujourd\'hui.</p>'
-        sections.append(f'<section id="{t["id"]}"><h2>{e(t["titre"])}</h2>{contenu}</section>')
+        nb_sujets = f'<span class="compte">{len(cartes)}</span>' if cartes else ""
+        sections.append(
+            f'<details class="section" id="{t["id"]}"><summary><h2>{e(t["titre"])}</h2>{nb_sujets}'
+            f'<span class="chevron" aria-hidden="true"></span></summary>{contenu}</details>'
+        )
 
     heure = maintenant.astimezone(FUSEAU).strftime("%H h %M")
     page = (modele_dir / "index.html").read_text("utf-8")

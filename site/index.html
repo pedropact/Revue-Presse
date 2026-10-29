@@ -41,10 +41,24 @@
   nav a:active { background:var(--accent-doux); }
 
   main { max-width:680px; margin:auto; padding:0 16px calc(env(safe-area-inset-bottom) + 48px); }
-  section { scroll-margin-top:64px; }
-  h2 { display:flex; align-items:center; gap:10px; margin:36px 4px 14px; font-size:.8rem; font-weight:700;
-       letter-spacing:.1em; text-transform:uppercase; color:var(--doux); }
-  h2::before { content:""; width:4px; height:1.1em; border-radius:2px; background:var(--accent); }
+  .outils { display:flex; justify-content:flex-end; gap:8px; margin:16px 4px 0; }
+  .outils button { font:inherit; font-size:.8rem; font-weight:600; color:var(--accent); background:none;
+                   border:none; padding:6px 4px; cursor:pointer; }
+
+  details.section { scroll-margin-top:64px; margin-top:10px; }
+  details.section > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px;
+       padding:14px 14px; border-radius:12px; background:var(--carte); border:1px solid var(--ligne);
+       -webkit-tap-highlight-color:transparent; }
+  details.section > summary::-webkit-details-marker { display:none; }
+  details.section[open] > summary { margin-bottom:14px; }
+  h2 { flex:1; display:flex; align-items:center; gap:10px; margin:0; font-size:.8rem; font-weight:700;
+       letter-spacing:.1em; text-transform:uppercase; color:var(--texte); }
+  h2::before { content:""; flex:none; width:4px; height:1.1em; border-radius:2px; background:var(--accent); }
+  .compte { font-size:.75rem; font-weight:700; color:var(--accent); background:var(--accent-doux);
+            border-radius:999px; padding:2px 9px; }
+  .chevron { width:9px; height:9px; margin:0 4px 4px; border-right:2px solid var(--doux);
+             border-bottom:2px solid var(--doux); transform:rotate(45deg); transition:transform .2s; }
+  details.section[open] .chevron { transform:rotate(-135deg); margin-bottom:-4px; }
 
   .carte { background:var(--carte); border:1px solid var(--ligne); border-radius:16px; box-shadow:var(--ombre);
            padding:18px 18px 14px; margin-bottom:14px; }
@@ -59,12 +73,12 @@
   .points li::before { content:""; position:absolute; left:4px; top:.85em; width:6px; height:6px;
                        border-radius:50%; background:var(--accent); }
 
-  details { margin-top:6px; border-top:1px solid var(--ligne); }
-  summary { list-style:none; cursor:pointer; padding:12px 0 4px; font-size:.9rem; font-weight:600; color:var(--accent); }
-  summary::-webkit-details-marker { display:none; }
-  summary::after { content:" ↓"; }
-  details[open] summary::after { content:" ↑"; }
-  details[open] summary { color:var(--doux); }
+  .carte details { margin-top:6px; border-top:1px solid var(--ligne); }
+  .carte summary { list-style:none; cursor:pointer; padding:12px 0 4px; font-size:.9rem; font-weight:600; color:var(--accent); }
+  .carte summary::-webkit-details-marker { display:none; }
+  .carte summary::after { content:" ↓"; }
+  .carte details[open] summary::after { content:" ↑"; }
+  .carte details[open] summary { color:var(--doux); }
   .texte p { margin:10px 0 0; font-family:var(--serif); font-size:1.08rem; line-height:1.65; }
 
   .sources { margin:12px 0 0; font-size:.78rem; color:var(--doux); }
@@ -81,11 +95,36 @@
 </header>
 <nav>{{NAV}}</nav>
 <main>
+<div class="outils">
+  <button type="button" id="tout-ouvrir">Tout déplier</button>
+  <button type="button" id="tout-fermer">Tout replier</button>
+</div>
 {{SECTIONS}}
 <footer>Résumés rédigés automatiquement par une IA à partir de plusieurs médias.<br>Les noms des sources mènent aux articles originaux.</footer>
 </main>
 <script>
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+
+  // Sections repliables : l'état de chaque section est mémorisé sur cet appareil.
+  const sections = [...document.querySelectorAll("details.section")];
+  const CLE = "sections-ouvertes";
+  let ouvertes = null;
+  try { ouvertes = JSON.parse(localStorage.getItem(CLE)); } catch (e) {}
+  sections.forEach((s) => { s.open = Array.isArray(ouvertes) ? ouvertes.includes(s.id) : true; });
+  const memoriser = () => {
+    try { localStorage.setItem(CLE, JSON.stringify(sections.filter((s) => s.open).map((s) => s.id))); } catch (e) {}
+  };
+  sections.forEach((s) => s.addEventListener("toggle", memoriser));
+  document.getElementById("tout-ouvrir").onclick = () => sections.forEach((s) => (s.open = true));
+  document.getElementById("tout-fermer").onclick = () => sections.forEach((s) => (s.open = false));
+
+  // Un clic dans le menu ouvre la section visée avant d'y défiler
+  document.querySelectorAll("nav a").forEach((a) =>
+    a.addEventListener("click", () => {
+      const cible = document.getElementById(a.getAttribute("href").slice(1));
+      if (cible) cible.open = true;
+    })
+  );
 </script>
 </body>
 </html>
