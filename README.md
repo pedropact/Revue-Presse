@@ -35,7 +35,7 @@ Opcional: crie a variável (aba *Variables*) `CF_PROJET` para mudar o nome do pr
 ### 4. Primeira execução
 1. *Actions → Revue de presse quotidienne → Run workflow*.
 2. Para um teste rápido, marque **Sans modèle de résumé**.
-3. Depois disso, roda sozinho todo dia por volta das 6h (horário de Montreal).
+3. Depois disso, roda sozinho todo dia: começa às 6h05 e fica pronto por volta das 7h (horário de Montreal, com ajuste automático do horário de verão).
 
 ### 5. Instalar no celular
 Abra o endereço `https://<projeto>.pages.dev`:
