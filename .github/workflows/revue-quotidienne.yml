@@ -1,0 +1,59 @@
+name: Revue de presse quotidienne
+
+on:
+  schedule:
+    # 10 h 17 UTC = 6 h 17 à Montréal en été (5 h 17 en hiver).
+    # GitHub peut retarder les tâches planifiées de quelques minutes.
+    - cron: "17 10 * * *"
+  workflow_dispatch:
+    inputs:
+      sans_ia:
+        description: "Sans modèle de résumé (test rapide)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: revue
+  cancel-in-progress: false
+
+jobs:
+  revue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      HF_HOME: /home/runner/.cache/huggingface
+      FASTEMBED_CACHE_PATH: /home/runner/.cache/fastembed
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          pip install -r requirements.txt
+          pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+
+      - name: Cache des modèles d'IA
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/runner/.cache/huggingface
+            /home/runner/.cache/fastembed
+          key: modeles-${{ hashFiles('config.yaml') }}
+          restore-keys: modeles-
+
+      - name: Générer la revue de presse
+        run: python src/main.py ${{ inputs.sans_ia && '--sans-ia' || '' }}
+
+      - name: Publier sur Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJET: ${{ vars.CF_PROJET || 'revue-presse' }}
+        run: |
+          # Crée le projet la première fois (sans effet s'il existe déjà)
+          npx --yes wrangler@4 pages project create "$PROJET" --production-branch=main || true
+          npx --yes wrangler@4 pages deploy public --project-name="$PROJET" --branch=main

@@ -1,0 +1,4 @@
+public/
+.venv/
+__pycache__/
+*.gguf

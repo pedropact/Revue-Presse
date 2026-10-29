@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Revue de presse</title>
+<meta name="theme-color" content="#1d3a5f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Revue de presse">
+<style>
+  :root { --fond:#f7f6f2; --carte:#fff; --texte:#1b1b1b; --doux:#5f6368; --accent:#1d3a5f; --ligne:#e3e1da; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fond:#121417; --carte:#1c1f24; --texte:#e8e6e3; --doux:#a0a4aa; --accent:#8db4e2; --ligne:#2c3038; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--fond); color:var(--texte);
+         font:17px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: calc(env(safe-area-inset-top) + 20px) 16px 8px; max-width: 760px; margin: auto; }
+  header h1 { margin:0; font-size:1.6rem; color:var(--accent); }
+  header p { margin:4px 0 0; color:var(--doux); font-size:.9rem; }
+  nav { position:sticky; top:0; z-index:1; background:var(--fond); border-bottom:1px solid var(--ligne);
+        display:flex; gap:6px; overflow-x:auto; padding:10px 16px; scrollbar-width:none; }
+  nav a { flex:none; text-decoration:none; color:var(--accent); border:1px solid var(--ligne);
+          border-radius:999px; padding:4px 12px; font-size:.85rem; background:var(--carte); }
+  main { max-width:760px; margin:auto; padding: 0 16px calc(env(safe-area-inset-bottom) + 40px); }
+  section { scroll-margin-top:60px; }
+  h2 { font-size:1.15rem; margin:28px 0 10px; text-transform:uppercase; letter-spacing:.04em; color:var(--doux); }
+  ol { list-style:none; padding:0; margin:0; counter-reset:n; }
+  li { background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+  li h3 { margin:0 0 6px; font-size:1.05rem; line-height:1.35; }
+  li h3::before { counter-increment:n; content:counter(n) ". "; color:var(--accent); }
+  li p { margin:0; }
+  .badge { font-size:.7rem; font-weight:600; vertical-align:middle; color:var(--accent);
+           border:1px solid var(--accent); border-radius:999px; padding:1px 7px; white-space:nowrap; }
+  .sources { margin-top:8px; font-size:.82rem; color:var(--doux); }
+  .sources a { color:var(--accent); }
+  .vide { color:var(--doux); font-style:italic; }
+  footer { text-align:center; color:var(--doux); font-size:.75rem; margin-top:30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Revue de presse</h1>
+  <p>Québec et Canada · {{DATE}} · mise à jour à {{HEURE}}</p>
+</header>
+<nav>{{NAV}}</nav>
+<main>
+{{SECTIONS}}
+<footer>Résumés générés automatiquement par un modèle d'IA local. Consultez les articles originaux pour les détails.</footer>
+</main>
+<script>
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>

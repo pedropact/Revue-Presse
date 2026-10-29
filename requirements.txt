@@ -1,0 +1,7 @@
+feedparser>=6.0
+requests>=2.31
+trafilatura>=1.8
+fastembed>=0.5
+numpy>=1.26
+pyyaml>=6.0
+# llama-cpp-python est installé séparément (voir le workflow) avec les roues CPU précompilées

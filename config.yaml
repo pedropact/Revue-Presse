@@ -1,0 +1,163 @@
+# Configuration de la revue de presse quotidienne (Québec / Canada)
+# Modifiez ce fichier pour ajouter des sources ou ajuster les thèmes.
+
+general:
+  langue_sortie: fr
+  fenetre_heures: 30          # n'utilise que les articles publiés dans les X dernières heures
+  nb_par_theme: 5
+  seuil_theme: 0.33           # similarité minimale pour classer un article dans un thème
+  seuil_regroupement: 0.70    # similarité minimale (titres) pour considérer deux articles comme le même sujet
+  max_articles_par_resume: 4  # articles envoyés au modèle pour produire un résumé fusionné
+  max_caracteres_article: 1500
+
+modeles:
+  embeddings: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+  # Modèle de résumé (GGUF, exécuté sur CPU via llama.cpp).
+  # Pour une meilleure qualité (mais ~2x plus lent) :
+  #   repo: Qwen/Qwen2.5-3B-Instruct-GGUF  /  fichier: qwen2.5-3b-instruct-q4_k_m.gguf
+  llm_repo: Qwen/Qwen2.5-1.5B-Instruct-GGUF
+  llm_fichier: qwen2.5-1.5b-instruct-q4_k_m.gguf
+  llm_contexte: 4096
+
+# paywall: true  -> on n'utilise que le titre et le chapeau fournis par le flux RSS
+# theme: (optionnel) indice de thème pour un flux de section, donne un léger bonus
+sources:
+  - nom: Radio-Canada
+    langue: fr
+    paywall: false
+    flux:
+      - url: https://ici.radio-canada.ca/rss/4159
+      - url: https://ici.radio-canada.ca/rss/5717
+        theme: economie
+
+  - nom: La Presse
+    langue: fr
+    paywall: false
+    flux:
+      - url: https://www.lapresse.ca/actualites/rss
+      - url: https://www.lapresse.ca/actualites/politique/rss
+        theme: politique
+      - url: https://www.lapresse.ca/affaires/rss
+        theme: economie
+      - url: https://www.lapresse.ca/actualites/sante/rss
+        theme: sante
+      - url: https://www.lapresse.ca/international/rss
+        theme: international
+
+  - nom: Le Devoir
+    langue: fr
+    paywall: true
+    flux:
+      - url: https://www.ledevoir.com/rss/manchettes.xml
+      - url: https://www.ledevoir.com/rss/section/politique.xml
+        theme: politique
+      - url: https://www.ledevoir.com/rss/section/economie.xml
+        theme: economie
+
+  - nom: Journal de Montréal
+    langue: fr
+    paywall: true
+    flux:
+      - url: https://www.journaldemontreal.com/rss.xml
+
+  - nom: TVA Nouvelles
+    langue: fr
+    paywall: false
+    flux:
+      - url: https://www.tvanouvelles.ca/rss.xml
+
+  - nom: CBC News
+    langue: en
+    paywall: false
+    flux:
+      - url: https://www.cbc.ca/webfeed/rss/rss-canada
+      - url: https://www.cbc.ca/webfeed/rss/rss-politics
+        theme: politique
+      - url: https://www.cbc.ca/webfeed/rss/rss-business
+        theme: economie
+      - url: https://www.cbc.ca/webfeed/rss/rss-health
+        theme: sante
+      - url: https://www.cbc.ca/webfeed/rss/rss-canada-montreal
+
+  - nom: Global News
+    langue: en
+    paywall: false
+    flux:
+      - url: https://globalnews.ca/canada/feed/
+      - url: https://globalnews.ca/politics/feed/
+        theme: politique
+      - url: https://globalnews.ca/money/feed/
+        theme: economie
+      - url: https://globalnews.ca/health/feed/
+        theme: sante
+
+  - nom: Montreal Gazette
+    langue: en
+    paywall: true
+    flux:
+      - url: https://montrealgazette.com/feed
+
+  - nom: The Globe and Mail
+    langue: en
+    paywall: true
+    flux:
+      - url: https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/politics/
+        theme: politique
+      - url: https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/business/
+        theme: economie
+
+# Chaque thème est décrit par quelques phrases (FR et EN) : le modèle d'embeddings
+# compare chaque article à ces descriptions. Les mots-clés donnent un bonus.
+# "ancrage_requis": l'article doit mentionner le Canada ou le Québec.
+themes:
+  - id: economie
+    titre: Économie
+    descriptions:
+      - Économie du Québec et du Canada, inflation, taux d'intérêt de la Banque du Canada, emploi et chômage
+      - Entreprises, commerce, tarifs douaniers, marché immobilier, budget et finances publiques
+      - Canadian economy, inflation, Bank of Canada interest rates, jobs report, trade and tariffs
+    mots_cles: [économie, inflation, "taux directeur", "Banque du Canada", chômage, emploi, PIB, tarifs, budget, récession, economy, tariff, "interest rate", GDP, jobs, housing market]
+
+  - id: politique
+    titre: Gouvernement et politique intérieure
+    descriptions:
+      - Gouvernement du Québec, Assemblée nationale, premier ministre du Québec, partis politiques québécois
+      - Gouvernement fédéral à Ottawa, Parlement, Chambre des communes, élections et partis politiques canadiens
+      - Canadian federal government, Parliament, House of Commons, prime minister, provincial politics, elections
+    mots_cles: [gouvernement, ministre, "Assemblée nationale", Ottawa, Parlement, Communes, élection, CAQ, PQ, libéral, conservateur, NPD, "Bloc québécois", Parliament, election, premier, Liberals, Conservatives]
+
+  - id: sante
+    titre: Santé
+    descriptions:
+      - Système de santé du Québec, hôpitaux, urgences, médecins, infirmières, Santé Québec
+      - Santé publique, maladies, vaccination, médicaments, santé mentale
+      - Canadian health care, hospitals, emergency rooms, doctors, nurses, public health, vaccines
+    mots_cles: [santé, hôpital, urgences, médecin, infirmière, "Santé Québec", vaccin, "santé publique", health, hospital, doctor, nurses, "public health", vaccine]
+
+  - id: international
+    titre: Relations extérieures (impact sur le Canada et le Québec)
+    descriptions:
+      - Relations entre le Canada et les États-Unis, commerce avec les Américains, Maison-Blanche et Ottawa
+      - Diplomatie canadienne, accords internationaux, relations du Québec avec la France et l'étranger
+      - Canada-US relations, foreign policy, trade negotiations, Canada and NATO, Canada and China, Canada and India
+    mots_cles: [diplomatie, "États-Unis", Washington, "Maison-Blanche", ACEUM, OTAN, ambassade, "affaires étrangères", diplomacy, "foreign affairs", CUSMA, NATO, "White House", embassy]
+    ancrage_requis: true
+
+  - id: immigration
+    titre: Immigration
+    descriptions:
+      - Immigration au Québec et au Canada, seuils d'immigration, travailleurs étrangers temporaires, étudiants étrangers
+      - Demandeurs d'asile, réfugiés, permis de travail, résidence permanente, citoyenneté, francisation
+      - Immigration to Canada, asylum seekers, refugees, temporary foreign workers, international students, permanent residency
+    mots_cles: [immigration, immigrants, "demandeurs d'asile", réfugiés, "travailleurs étrangers", "étudiants étrangers", "résidence permanente", citoyenneté, IRCC, asylum, refugees, "foreign workers", "permanent resident"]
+
+  - id: securite
+    titre: Sécurité
+    descriptions:
+      - Sécurité publique, criminalité, police, SPVM, Sûreté du Québec, GRC, crime organisé
+      - Défense nationale, Forces armées canadiennes, sécurité nationale, cybersécurité, terrorisme, frontière
+      - Public safety, crime, police, RCMP, national security, Canadian Armed Forces, border security, cybersecurity
+    mots_cles: [police, SPVM, "Sûreté du Québec", GRC, crime, meurtre, fusillade, sécurité, défense, armée, frontière, cybersécurité, terrorisme, RCMP, shooting, defence, military, border, "national security"]
+
+# Mots indiquant qu'un article concerne le Canada/Québec (pour ancrage_requis)
+ancrage: [Canada, canadien, canadienne, Canadian, Québec, Quebec, québécois, Ottawa, Montréal, Montreal, Toronto, fédéral, federal]
