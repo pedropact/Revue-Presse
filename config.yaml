@@ -44,6 +44,8 @@ sources:
         theme: economie
       - url: https://www.lapresse.ca/actualites/sante/rss
         theme: sante
+      - url: https://www.lapresse.ca/affaires/techno/rss
+        theme: technologie
       - url: https://www.lapresse.ca/international/rss
         theme: international
 
@@ -80,6 +82,8 @@ sources:
         theme: economie
       - url: https://www.cbc.ca/webfeed/rss/rss-health
         theme: sante
+      - url: https://www.cbc.ca/webfeed/rss/rss-technology
+        theme: technologie
       - url: https://www.cbc.ca/webfeed/rss/rss-canada-montreal
 
   - nom: Global News
@@ -93,6 +97,8 @@ sources:
         theme: economie
       - url: https://globalnews.ca/health/feed/
         theme: sante
+      - url: https://globalnews.ca/tech/feed/
+        theme: technologie
 
   - nom: The Globe and Mail
     langue: en
@@ -119,6 +125,7 @@ sections:
   - {id: environnement, court: "Environnement",    titre: "Environnement — Canada et Québec",        categorie: environnement, portee: tous,   nb: 3}
   - {id: immigration, court: "Immigration",      titre: "Immigration — Canada et Québec",          categorie: immigration,   portee: tous,   nb: 3}
   - {id: securite, court: "Sécurité",         titre: "Sécurité — Canada et Québec",             categorie: securite,      portee: tous,   nb: 3}
+  - {id: technologie, court: "Techno",  titre: "Technologie — Canada et Québec",          categorie: technologie,   portee: tous,   nb: 3}
 
 # Chaque catégorie est décrite par quelques phrases (FR et EN) : le modèle d'embeddings
 # compare chaque article à ces descriptions. Les mots-clés donnent un bonus.
@@ -173,6 +180,14 @@ categories:
       - Défense nationale, Forces armées canadiennes, sécurité nationale, cybersécurité, terrorisme, frontière
       - Public safety, crime, police, RCMP, national security, Canadian Armed Forces, border security, cybersecurity
     mots_cles: [police, SPVM, "Sûreté du Québec", GRC, crime, meurtre, fusillade, sécurité, défense, armée, frontière, cybersécurité, terrorisme, RCMP, shooting, defence, military, border, "national security"]
+
+  - id: technologie
+    descriptions:
+      - Technologie au Québec et au Canada, intelligence artificielle, entreprises technologiques, jeunes pousses, Shopify, Mila
+      - Numérique, cybersécurité, protection des données, réseaux sociaux, télécommunications, CRTC, Bell, Rogers, Vidéotron
+      - Canadian tech industry, artificial intelligence, startups, telecom, data privacy, online regulation, semiconductors
+    mots_cles: [technologie, techno, "intelligence artificielle", IA, numérique, "jeune pousse", cybersécurité, "données personnelles", "réseaux sociaux", CRTC, télécommunications, technology, tech, "artificial intelligence", AI, startup, telecom, privacy, Shopify, Mila]
+    ancrage_requis: true
 
 # Mots indiquant qu'un article concerne le Canada/Québec (pour ancrage_requis)
 ancrage: [Canada, canadien, canadienne, Canadian, Québec, Quebec, québécois, Ottawa, Montréal, Montreal, Toronto, fédéral, federal]
