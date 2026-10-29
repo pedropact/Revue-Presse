@@ -1,6 +1,6 @@
 # Revue de presse Québec–Canada
 
-App que, uma vez por dia, lê notícias de sites do Quebec e do Canadá (em francês e inglês), classifica por tema, junta as notícias que falam do mesmo fato em sites diferentes, resume cada uma em francês com um modelo de IA pequeno e publica as 5 principais de cada tema num site/PWA no Cloudflare Pages.
+App que, uma vez por dia, lê notícias de sites do Quebec e do Canadá (em francês e inglês), classifica por tema, junta as notícias que falam do mesmo fato em sites diferentes, resume cada uma em francês com um modelo de IA pequeno e publica as 3 principais de cada tema num site/PWA no Cloudflare Pages.
 
 **Custo: zero.** Roda no GitHub Actions (grátis), publica no Cloudflare Pages (grátis) e se instala no celular sem App Store nem Google Play.
 

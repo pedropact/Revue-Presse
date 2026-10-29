@@ -4,7 +4,7 @@
 general:
   langue_sortie: fr
   fenetre_heures: 30          # n'utilise que les articles publiés dans les X dernières heures
-  nb_par_theme: 5
+  nb_par_theme: 3
   seuil_theme: 0.33           # similarité minimale pour classer un article dans un thème
   seuil_regroupement: 0.70    # similarité minimale (titres) pour considérer deux articles comme le même sujet
   max_articles_par_resume: 4  # articles envoyés au modèle pour produire un résumé fusionné
