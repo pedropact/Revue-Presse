@@ -4,7 +4,6 @@
 general:
   langue_sortie: fr
   fenetre_heures: 30          # n'utilise que les articles publiés dans les X dernières heures
-  nb_par_theme: 3
   seuil_theme: 0.33           # similarité minimale pour classer un article dans un thème
   seuil_regroupement: 0.70    # similarité minimale (titres) pour considérer deux articles comme le même sujet
   max_articles_par_resume: 4  # articles envoyés au modèle pour produire un résumé fusionné
@@ -91,12 +90,6 @@ sources:
       - url: https://globalnews.ca/health/feed/
         theme: sante
 
-  - nom: Montreal Gazette
-    langue: en
-    paywall: true
-    flux:
-      - url: https://montrealgazette.com/feed/
-
   - nom: The Globe and Mail
     langue: en
     paywall: true
@@ -106,12 +99,28 @@ sources:
       - url: https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/business/
         theme: economie
 
-# Chaque thème est décrit par quelques phrases (FR et EN) : le modèle d'embeddings
+# Sections affichées dans l'application, dans cet ordre.
+#   categorie : sujet de l'article (voir « categories » plus bas)
+#   portee    : canada  -> sujets fédéraux / pancanadiens
+#               quebec  -> sujets propres au Québec
+#               tous    -> Canada et Québec confondus
+#   nb        : nombre de sujets affichés
+sections:
+  - {id: economie-canada,  titre: "Économie — Canada",                       categorie: economie,      portee: canada, nb: 3}
+  - {id: economie-quebec,  titre: "Économie — Québec",                       categorie: economie,      portee: quebec, nb: 3}
+  - {id: politique-canada, titre: "Canada — Gouvernement et politique",      categorie: politique,     portee: canada, nb: 3}
+  - {id: politique-quebec, titre: "Québec — Gouvernement et politique",      categorie: politique,     portee: quebec, nb: 3}
+  - {id: international,    titre: "Relations extérieures",                   categorie: international, portee: tous,   nb: 4}
+  - {id: sante,            titre: "Santé — Canada et Québec",                categorie: sante,         portee: tous,   nb: 3}
+  - {id: environnement,    titre: "Environnement — Canada et Québec",        categorie: environnement, portee: tous,   nb: 3}
+  - {id: immigration,      titre: "Immigration — Canada et Québec",          categorie: immigration,   portee: tous,   nb: 3}
+  - {id: securite,         titre: "Sécurité — Canada et Québec",             categorie: securite,      portee: tous,   nb: 3}
+
+# Chaque catégorie est décrite par quelques phrases (FR et EN) : le modèle d'embeddings
 # compare chaque article à ces descriptions. Les mots-clés donnent un bonus.
 # "ancrage_requis": l'article doit mentionner le Canada ou le Québec.
-themes:
+categories:
   - id: economie
-    titre: Économie
     descriptions:
       - Économie du Québec et du Canada, inflation, taux d'intérêt de la Banque du Canada, emploi et chômage
       - Entreprises, commerce, tarifs douaniers, marché immobilier, budget et finances publiques
@@ -119,23 +128,13 @@ themes:
     mots_cles: [économie, inflation, "taux directeur", "Banque du Canada", chômage, emploi, PIB, tarifs, budget, récession, economy, tariff, "interest rate", GDP, jobs, housing market]
 
   - id: politique
-    titre: Gouvernement et politique intérieure
     descriptions:
       - Gouvernement du Québec, Assemblée nationale, premier ministre du Québec, partis politiques québécois
       - Gouvernement fédéral à Ottawa, Parlement, Chambre des communes, élections et partis politiques canadiens
       - Canadian federal government, Parliament, House of Commons, prime minister, provincial politics, elections
     mots_cles: [gouvernement, ministre, "Assemblée nationale", Ottawa, Parlement, Communes, élection, CAQ, PQ, libéral, conservateur, NPD, "Bloc québécois", Parliament, election, premier, Liberals, Conservatives]
 
-  - id: sante
-    titre: Santé
-    descriptions:
-      - Système de santé du Québec, hôpitaux, urgences, médecins, infirmières, Santé Québec
-      - Santé publique, maladies, vaccination, médicaments, santé mentale
-      - Canadian health care, hospitals, emergency rooms, doctors, nurses, public health, vaccines
-    mots_cles: [santé, hôpital, urgences, médecin, infirmière, "Santé Québec", vaccin, "santé publique", health, hospital, doctor, nurses, "public health", vaccine]
-
   - id: international
-    titre: Relations extérieures (impact sur le Canada et le Québec)
     descriptions:
       - Relations entre le Canada et les États-Unis, commerce avec les Américains, Maison-Blanche et Ottawa
       - Diplomatie canadienne, accords internationaux, relations du Québec avec la France et l'étranger
@@ -143,8 +142,21 @@ themes:
     mots_cles: [diplomatie, "États-Unis", Washington, "Maison-Blanche", ACEUM, OTAN, ambassade, "affaires étrangères", diplomacy, "foreign affairs", CUSMA, NATO, "White House", embassy]
     ancrage_requis: true
 
+  - id: sante
+    descriptions:
+      - Système de santé du Québec, hôpitaux, urgences, médecins, infirmières, Santé Québec
+      - Santé publique, maladies, vaccination, médicaments, santé mentale
+      - Canadian health care, hospitals, emergency rooms, doctors, nurses, public health, vaccines
+    mots_cles: [santé, hôpital, urgences, médecin, infirmière, "Santé Québec", vaccin, "santé publique", health, hospital, doctor, nurses, "public health", vaccine]
+
+  - id: environnement
+    descriptions:
+      - Environnement et climat au Québec et au Canada, changements climatiques, émissions de gaz à effet de serre
+      - Feux de forêt, inondations, pollution, biodiversité, énergie propre, transition énergétique, pipelines
+      - Environment and climate change in Canada, wildfires, floods, emissions, pollution, clean energy, oil and gas pipelines
+    mots_cles: [environnement, climat, climatique, GES, émissions, "feux de forêt", inondations, pollution, biodiversité, "énergie propre", pipeline, carbone, environment, climate, wildfire, emissions, pollution, "clean energy", carbon]
+
   - id: immigration
-    titre: Immigration
     descriptions:
       - Immigration au Québec et au Canada, seuils d'immigration, travailleurs étrangers temporaires, étudiants étrangers
       - Demandeurs d'asile, réfugiés, permis de travail, résidence permanente, citoyenneté, francisation
@@ -152,7 +164,6 @@ themes:
     mots_cles: [immigration, immigrants, "demandeurs d'asile", réfugiés, "travailleurs étrangers", "étudiants étrangers", "résidence permanente", citoyenneté, IRCC, asylum, refugees, "foreign workers", "permanent resident"]
 
   - id: securite
-    titre: Sécurité
     descriptions:
       - Sécurité publique, criminalité, police, SPVM, Sûreté du Québec, GRC, crime organisé
       - Défense nationale, Forces armées canadiennes, sécurité nationale, cybersécurité, terrorisme, frontière
@@ -161,3 +172,8 @@ themes:
 
 # Mots indiquant qu'un article concerne le Canada/Québec (pour ancrage_requis)
 ancrage: [Canada, canadien, canadienne, Canadian, Québec, Quebec, québécois, Ottawa, Montréal, Montreal, Toronto, fédéral, federal]
+
+# Pour séparer « Canada » et « Québec » : on compte ces marqueurs dans les articles d'un sujet.
+# S'il y a plus de marqueurs québécois que canadiens, le sujet va dans la section Québec.
+marqueurs_quebec: [Québec, Quebec, québécois, québécoise, québécoises, Montréal, Montreal, Laval, Gatineau, Sherbrooke, "Trois-Rivières", Saguenay, Longueuil, Lévis, Rimouski, "Assemblée nationale", CAQ, "Coalition avenir Québec", "Parti québécois", "Québec solidaire", "Hydro-Québec", "Santé Québec", SAAQ, "Caisse de dépôt", "Sûreté du Québec", SPVM, provincial, provinciale, "National Assembly"]
+marqueurs_canada: [Canada, canadien, canadienne, canadiens, Canadian, Canadians, Ottawa, fédéral, fédérale, federal, Communes, Commons, Parlement, Parliament, Sénat, Senate, "Bloc québécois", GRC, RCMP, Ontario, Alberta, "Colombie-Britannique", "British Columbia", Manitoba, Saskatchewan, Toronto, Vancouver, Calgary, Edmonton, Winnipeg]

@@ -43,7 +43,7 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
         "genere": maintenant.isoformat(),
         "themes": [
             {"id": t["id"], "titre": t["titre"], "sujets": [vers_dict(s) for s in par_theme[t["id"]]]}
-            for t in config["themes"]
+            for t in config["sections"]
         ],
     }
     (sortie / "data.json").write_text(json.dumps(donnees, ensure_ascii=False, indent=1), "utf-8")
@@ -51,7 +51,7 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
     e = html.escape
     nav, sections = [], []
     for t in donnees["themes"]:
-        nav.append(f'<a href="#{t["id"]}">{e(t["titre"].split(" (")[0])}</a>')
+        nav.append(f'<a href="#{t["id"]}">{e(t["titre"])}</a>')
         items = []
         for s in t["sujets"]:
             liens = " · ".join(

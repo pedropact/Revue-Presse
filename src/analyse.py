@@ -29,9 +29,9 @@ def contient(texte: str, mots: list[str]) -> int:
 
 
 def classer_themes(articles: list[Article], vecteurs: np.ndarray, config: dict, enc: Encodeur) -> None:
-    """Attribue à chaque article un score par thème (similarité + mots-clés + indice du flux)."""
+    """Attribue à chaque article un score par catégorie (similarité + mots-clés + indice du flux)."""
     ancrage = config.get("ancrage", [])
-    for theme in config["themes"]:
+    for theme in config["categories"]:
         protos = enc.encoder(theme["descriptions"])
         sims = (vecteurs @ protos.T).max(axis=1)
         for a, sim in zip(articles, sims):
@@ -87,18 +87,34 @@ def regrouper(articles: list[Article], vecteurs_titres: np.ndarray, seuil: float
     return sujets
 
 
+def portee(sujet: Sujet, config: dict) -> str:
+    """« quebec » si les articles parlent davantage du Québec que du Canada, sinon « canada »."""
+    q = sum(contient(a.texte_court(), config["marqueurs_quebec"]) for a in sujet.articles)
+    c = sum(contient(a.texte_court(), config["marqueurs_canada"]) for a in sujet.articles)
+    return "quebec" if q > c else "canada"
+
+
 def selectionner(sujets: list[Sujet], config: dict) -> dict[str, list[Sujet]]:
-    """Attribue un thème à chaque sujet et retient les N meilleurs par thème."""
+    """Attribue chaque sujet à une section (catégorie + portée) et retient les meilleurs."""
     g = config["general"]
     maintenant = datetime.now(timezone.utc)
-    par_theme = {t["id"]: [] for t in config["themes"]}
+    categories = [c["id"] for c in config["categories"]]
+    par_section = {s["id"]: [] for s in config["sections"]}
     for s in sujets:
-        moyennes = {t: float(np.mean([a.themes[t] for a in s.articles])) for t in par_theme}
-        theme, pertinence = max(moyennes.items(), key=lambda kv: kv[1])
+        moyennes = {c: float(np.mean([a.themes[c] for a in s.articles])) for c in categories}
+        categorie, pertinence = max(moyennes.items(), key=lambda kv: kv[1])
         if pertinence < g["seuil_theme"]:
             continue
+        geo = portee(s, config)
+        section = next(
+            (sec for sec in config["sections"]
+             if sec["categorie"] == categorie and sec["portee"] in ("tous", geo)),
+            None,
+        )
+        if section is None:
+            continue
         heures = (maintenant - s.plus_recent).total_seconds() / 3600
-        s.theme, s.pertinence = theme, pertinence
+        s.theme, s.pertinence = section["id"], pertinence
         # Le nombre de médias différents qui couvrent un sujet est le meilleur signal d'importance
         s.score = (
             1.0 * len(s.sources)
@@ -106,7 +122,7 @@ def selectionner(sujets: list[Sujet], config: dict) -> dict[str, list[Sujet]]:
             + 1.0 * math.exp(-heures / 12)
             + 3.0 * pertinence
         )
-        par_theme[theme].append(s)
-    for t in par_theme:
-        par_theme[t] = sorted(par_theme[t], key=lambda s: s.score, reverse=True)[: g["nb_par_theme"]]
-    return par_theme
+        par_section[section["id"]].append(s)
+    for sec in config["sections"]:
+        par_section[sec["id"]] = sorted(par_section[sec["id"]], key=lambda s: s.score, reverse=True)[: sec["nb"]]
+    return par_section
