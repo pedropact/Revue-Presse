@@ -127,15 +127,23 @@ class ResumeurGemini:
         texte = "\n\n".join(
             f"======== SUJET {i} ========\n{preparer(s, max_articles)}" for i, s in enumerate(sujets, 1)
         )
-        while self.modeles:
+        reponse, derniere_erreur = None, None
+        for modele in list(self.modeles):
             try:
-                reponse = json.loads(self.appeler(self.modeles[0], texte))
+                reponse = json.loads(self.appeler(modele, texte))
                 break
             except QuotaEpuise as e:
                 log.warning("Quota quotidien épuisé : %s", e)
-                self.modeles.pop(0)  # on passe au modèle suivant (ex. Flash-Lite)
-        else:
-            raise QuotaEpuise("tous les modèles Gemini ont atteint leur quota")
+                self.modeles.remove(modele)  # inutile de le réessayer aujourd'hui
+                derniere_erreur = e
+            except Exception as e:
+                # Surcharge passagère (503...) : on tente le modèle suivant pour ce lot
+                log.warning("Échec de %s : %s", modele, e)
+                derniere_erreur = e
+        if reponse is None:
+            if not self.modeles:
+                raise QuotaEpuise("tous les modèles Gemini ont atteint leur quota")
+            raise RuntimeError(str(derniere_erreur))
         restants = []
         resultats = {int(r.get("id", 0)): r for r in reponse.get("sujets", [])}
         for i, s in enumerate(sujets, 1):
@@ -168,7 +176,7 @@ class Resumeur:
                 self.bilan["Gemini"] += len(sujets) - len(restants)
             except Exception as e:
                 log.warning("Gemini a échoué (%s), repli sur le modèle local", e)
-                self.bilan["erreur Gemini : " + str(e)[:250]] += 0
+                self.bilan["erreur Gemini : " + " ".join(str(e).split())[:250]] += 0
                 if isinstance(e, QuotaEpuise):
                     self.gemini = None
         for s in restants:
@@ -184,7 +192,7 @@ class Resumeur:
             log.warning("Résumé impossible (%s), utilisation du texte RSS", e)
             resume_sans_ia(sujet)
             self.bilan["sans IA"] += 1
-            self.bilan["erreur modèle local : " + str(e)[:200]] += 0
+            self.bilan["erreur modèle local : " + " ".join(str(e).split())[:200]] += 0
 
 
 def resume_sans_ia(sujet: Sujet) -> None:
