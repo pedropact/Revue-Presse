@@ -1,13 +1,8 @@
 name: Revue de presse quotidienne
 
 on:
-  schedule:
-    # Objectif : revue prête vers 7 h (heure de Montréal). La génération prend ~10 min,
-    # donc on démarre à 6 h 05. GitHub ne connaît que l'heure UTC : on planifie à
-    # 10 h 05 (heure d'été) et 11 h 05 (heure normale) UTC, et le job « horaire »
-    # ne laisse passer que celle qui tombe à 6 h à Montréal.
-    - cron: "5 10 * * *"
-    - cron: "5 11 * * *"
+  # Lancé chaque matin à 6 h 05 (Montréal) par le Worker Cloudflare « declencheur/ »,
+  # ou à la main depuis l'onglet Actions.
   workflow_dispatch:
     inputs:
       sans_ia:
@@ -20,23 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  horaire:
-    runs-on: ubuntu-latest
-    outputs:
-      go: ${{ steps.h.outputs.go }}
-    steps:
-      - id: h
-        run: |
-          heure=$(TZ=America/Toronto date +%H)
-          if [ "${{ github.event_name }}" != "schedule" ] || [ "$heure" = "06" ]; then
-            echo "go=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Il est ${heure} h à Montréal : exécution ignorée (l'autre horaire s'en charge)."
-          fi
-
   revue:
-    needs: horaire
-    if: needs.horaire.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
