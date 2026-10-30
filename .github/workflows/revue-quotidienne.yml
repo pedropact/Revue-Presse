@@ -2,7 +2,7 @@ name: Revue de presse quotidienne
 
 on:
   schedule:
-    # Objectif : revue prête vers 7 h (heure de Montréal). La génération prend ~30 min,
+    # Objectif : revue prête vers 7 h (heure de Montréal). La génération prend ~10 min,
     # donc on démarre à 6 h 05. GitHub ne connaît que l'heure UTC : on planifie à
     # 10 h 05 (heure d'été) et 11 h 05 (heure normale) UTC, et le job « horaire »
     # ne laisse passer que celle qui tombe à 6 h à Montréal.
