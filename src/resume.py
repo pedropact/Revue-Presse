@@ -24,8 +24,9 @@ SYSTEME = (
     "- texte : 2 ou 3 paragraphes courts (3 phrases maximum chacun) : contexte, réactions, "
     "conséquences ou prochaines étapes. Sépare les paragraphes par une ligne vide.\n"
     "N'invente aucun fait, aucun chiffre ni aucune citation. "
-    "Si les articles ne contiennent aucune information exploitable sur une nouvelle (page "
-    "d'erreur, accès refusé, texte vide ou hors sujet), ne rédige rien et mets ignorer à true. "
+    "Un titre accompagné d'un court chapeau suffit pour rédiger un résumé bref. Mets ignorer à "
+    "true uniquement si les articles ne contiennent aucune information sur une nouvelle (page "
+    "d'erreur, accès refusé, texte vide); dans ce cas, ne rédige rien. "
     'Réponds uniquement en JSON : {"titre": "...", "chapeau": "...", "points": ["...", "...", "..."], "texte": "...", "ignorer": false}'
 )
 
