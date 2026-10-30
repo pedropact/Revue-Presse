@@ -1,0 +1,11 @@
+name = "revue-presse-declencheur"
+main = "index.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[triggers]
+# 10 h 05 UTC = 6 h 05 à Montréal en été ; 11 h 05 UTC = 6 h 05 en hiver
+crons = ["5 10 * * *", "5 11 * * *"]
+
+[vars]
+DEPOT = "pedropact/Revue-Presse"

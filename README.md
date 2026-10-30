@@ -30,13 +30,16 @@ Em *Settings → Secrets and variables → Actions → New repository secret*, c
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `GEMINI_API_KEY`: chave gratuita criada em https://aistudio.google.com/apikey
+- `GH_DECLENCHEUR_TOKEN`: token do GitHub (fine-grained, só este repositório, permissão **Actions: Read and write**), usado pelo Worker do Cloudflare para disparar a revue
+
+O token do Cloudflare precisa de duas permissões: **Cloudflare Pages → Edit** e **Workers Scripts → Edit**. Depois, rode uma vez *Actions → Déployer le déclencheur Cloudflare*.
 
 Opcional: crie a variável (aba *Variables*) `CF_PROJET` para mudar o nome do projeto. O nome padrão é `revue-presse`, e ele define o endereço `https://revue-presse.pages.dev`. Se esse nome já estiver em uso no Cloudflare, escolha outro.
 
 ### 4. Primeira execução
 1. *Actions → Revue de presse quotidienne → Run workflow*.
 2. Para um teste rápido, marque **Sans modèle de résumé**.
-3. Depois disso, roda sozinho todo dia: começa às 6h05 e fica pronto por volta das 7h (horário de Montreal, com ajuste automático do horário de verão).
+3. Depois disso, roda sozinho todo dia: um Worker do Cloudflare (`declencheur/`) dispara a revue às 6h05 de Montreal (com ajuste automático do horário de verão) e ela fica pronta em uns 10 minutos.
 
 ### 5. Instalar no celular
 Abra o endereço `https://<projeto>.pages.dev`:

@@ -1,0 +1,40 @@
+name: Déployer le déclencheur Cloudflare
+
+# Installe (ou met à jour) le Worker Cloudflare qui lance la revue chaque matin.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["declencheur/**"]
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    defaults:
+      run:
+        working-directory: declencheur
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Déployer le Worker
+        run: |
+          set -o pipefail
+          if ! npx --yes wrangler@4 deploy 2>&1 | tee deploy.log; then
+            tail -n 8 deploy.log | sed 's/\x1b\[[0-9;]*m//g' | while IFS= read -r l; do [ -n "$l" ] && echo "::error::$l"; done
+            exit 1
+          fi
+
+      - name: Enregistrer le jeton GitHub dans le Worker
+        env:
+          JETON: ${{ secrets.GH_DECLENCHEUR_TOKEN }}
+        run: |
+          if [ -z "$JETON" ]; then echo "::error::Secret GH_DECLENCHEUR_TOKEN manquant"; exit 1; fi
+          set -o pipefail
+          if ! printf '%s' "$JETON" | npx --yes wrangler@4 secret put GITHUB_TOKEN 2>&1 | tee secret.log; then
+            tail -n 8 secret.log | sed 's/\x1b\[[0-9;]*m//g' | while IFS= read -r l; do [ -n "$l" ] && echo "::error::$l"; done
+            exit 1
+          fi
+          echo "::notice::Déclencheur installé : la revue sera lancée chaque jour à 6 h 05 (Montréal)."
