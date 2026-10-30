@@ -34,7 +34,8 @@ def vers_dict(s: Sujet) -> dict:
     }
 
 
-def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, modele_dir: Path) -> None:
+def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, modele_dir: Path,
+            avis: str | None = None) -> None:
     sortie.mkdir(parents=True, exist_ok=True)
     for f in modele_dir.iterdir():
         if f.name != "index.html":
@@ -89,5 +90,6 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
     page = (page.replace("{{DATE}}", e(date_longue(maintenant)))
                 .replace("{{HEURE}}", heure)
                 .replace("{{NAV}}", "".join(nav))
+                .replace("{{AVIS}}", f'<p class="avis" role="alert">{e(avis)}</p>' if avis else "")
                 .replace("{{SECTIONS}}", "\n".join(sections)))
     (sortie / "index.html").write_text(page, "utf-8")

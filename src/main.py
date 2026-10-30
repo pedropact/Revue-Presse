@@ -16,6 +16,7 @@ import yaml
 
 from analyse import Encodeur, classer_themes, regrouper, selectionner
 from collecte import collecter, extraire_texte, lire_flux
+from jeton import avis_jeton
 from resume import Resumeur, resume_sans_ia
 from site_web import generer
 
@@ -73,7 +74,7 @@ def main() -> None:
     if resumeur and os.getenv("GITHUB_ACTIONS"):
         print("::notice::Résumés : " + ", ".join(f"{k} {v}" if v else k for k, v in resumeur.bilan.items()))
 
-    generer(par_theme, config, args.sortie, RACINE / "site")
+    generer(par_theme, config, args.sortie, RACINE / "site", avis_jeton(os.getenv("GITHUB_REPOSITORY", "")))
     log.info("Site généré dans %s", args.sortie)
 
 
