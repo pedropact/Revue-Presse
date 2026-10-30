@@ -71,6 +71,14 @@ def main() -> None:
             for s in sujets:
                 resume_sans_ia(s)
 
+    ecartes = sum(s.ignorer for lst in par_theme.values() for s in lst)
+    for sec in config["sections"]:
+        par_theme[sec["id"]] = [s for s in par_theme[sec["id"]] if not s.ignorer][: sec["nb"]]
+    if ecartes:
+        log.info("%d sujets écartés (aucune information exploitable)", ecartes)
+        if os.getenv("GITHUB_ACTIONS"):
+            print(f"::notice::{ecartes} sujets écartés par l'IA (aucune information exploitable)")
+
     if resumeur and os.getenv("GITHUB_ACTIONS"):
         print("::notice::Résumés : " + ", ".join(f"{k} {v}" if v else k for k, v in resumeur.bilan.items()))
 

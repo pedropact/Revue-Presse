@@ -24,7 +24,9 @@ SYSTEME = (
     "- texte : 2 ou 3 paragraphes courts (3 phrases maximum chacun) : contexte, réactions, "
     "conséquences ou prochaines étapes. Sépare les paragraphes par une ligne vide.\n"
     "N'invente aucun fait, aucun chiffre ni aucune citation. "
-    'Réponds uniquement en JSON : {"titre": "...", "chapeau": "...", "points": ["...", "...", "..."], "texte": "..."}'
+    "Si les articles ne contiennent aucune information exploitable sur une nouvelle (page "
+    "d'erreur, accès refusé, texte vide ou hors sujet), ne rédige rien et mets ignorer à true. "
+    'Réponds uniquement en JSON : {"titre": "...", "chapeau": "...", "points": ["...", "...", "..."], "texte": "...", "ignorer": false}'
 )
 
 
@@ -34,7 +36,7 @@ SYSTEME_LOT = SYSTEME.replace(
     "(en français ou en anglais) portant sur la même nouvelle. Traite chaque sujet séparément.",
 ).split("Réponds uniquement")[0] + (
     'Réponds uniquement en JSON : {"sujets": [{"id": 1, "titre": "...", "chapeau": "...", '
-    '"points": ["...", "...", "..."], "texte": "..."}, ...]} avec un élément par sujet.'
+    '"points": ["...", "...", "..."], "texte": "...", "ignorer": false}, ...]} avec un élément par sujet.'
 )
 
 
@@ -50,6 +52,9 @@ def preparer(sujet: Sujet, max_articles: int) -> str:
 
 def appliquer(sujet: Sujet, reponse: str) -> None:
     data = json.loads(reponse)
+    if data.get("ignorer") is True:
+        sujet.ignorer = True
+        return
     sujet.titre = data["titre"].strip()
     sujet.chapeau = str(data.get("chapeau", "")).strip()
     sujet.points = [str(p).strip() for p in data.get("points", []) if str(p).strip()][:4]

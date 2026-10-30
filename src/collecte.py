@@ -117,6 +117,23 @@ def collecter(config: dict) -> list[Article]:
     return articles
 
 
+# Indices d'une page d'erreur ou de blocage plutôt que d'un article
+MARQUEURS_BLOCAGE = [
+    "access denied", "accès refusé", "acces refuse", "forbidden", "captcha",
+    "enable javascript", "activez javascript", "are you a robot", "êtes-vous un robot",
+    "unusual traffic", "trafic inhabituel", "request blocked", "requête bloquée",
+    "not authorized", "erreur d'autorisation", "page introuvable", "page not found",
+]
+
+
+def page_bloquee(texte: str) -> bool:
+    """Un texte court contenant des mots typiques d'une page d'erreur n'est pas un article."""
+    if not texte:
+        return False
+    debut = texte[:600].lower()
+    return len(texte) < 1500 and any(m in debut for m in MARQUEURS_BLOCAGE)
+
+
 def extraire_texte(article: Article, max_car: int) -> None:
     """Récupère le texte complet pour les sources sans paywall; sinon garde le chapeau RSS."""
     if article.paywall:
@@ -125,7 +142,11 @@ def extraire_texte(article: Article, max_car: int) -> None:
     try:
         import trafilatura
         r = requests.get(article.lien, headers={"User-Agent": UA}, timeout=TIMEOUT)
-        texte = trafilatura.extract(r.text, include_comments=False, include_tables=False) or ""
+        texte = ""
+        if r.status_code == 200:
+            texte = trafilatura.extract(r.text, include_comments=False, include_tables=False) or ""
+        if page_bloquee(texte):
+            texte = ""
     except Exception as e:  # le texte complet est un bonus : on continue avec le chapeau
         log.debug("Extraction échouée %s : %s", article.lien, e)
         texte = ""

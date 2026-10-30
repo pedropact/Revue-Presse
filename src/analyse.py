@@ -55,6 +55,7 @@ class Sujet:
     chapeau: str = ""
     points: list[str] = field(default_factory=list)
     resume: str = ""
+    ignorer: bool = False
 
     @property
     def sources(self) -> set[str]:
@@ -126,5 +127,7 @@ def selectionner(sujets: list[Sujet], config: dict) -> dict[str, list[Sujet]]:
         )
         par_section[section["id"]].append(s)
     for sec in config["sections"]:
-        par_section[sec["id"]] = sorted(par_section[sec["id"]], key=lambda s: s.score, reverse=True)[: sec["nb"]]
+        # On garde quelques sujets de réserve pour remplacer ceux que l'IA écarterait
+        garde = sec["nb"] + g.get("reserve_par_section", 0)
+        par_section[sec["id"]] = sorted(par_section[sec["id"]], key=lambda s: s.score, reverse=True)[:garde]
     return par_section
