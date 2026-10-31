@@ -137,7 +137,7 @@ class ResumeurGemini:
             "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json",
                                  "responseSchema": SCHEMA_LOT, "maxOutputTokens": 32768},
         }
-        for essai in range(2):
+        for essai in range(3):
             # Respecte la limite de requêtes par minute du forfait gratuit
             attente = self.dernier + self.pause - time.monotonic()
             if attente > 0:
@@ -151,7 +151,13 @@ class ResumeurGemini:
             detail = f"{modele} HTTP {r.status_code} : {r.text[:200]}"
             if r.status_code == 429 and "PerDay" in r.text:
                 raise QuotaEpuise(detail)
-            if r.status_code not in (429, 500, 503) or essai == 1:
+            if r.status_code == 400 and "responseSchema" in corps["generationConfig"]:
+                # Schéma refusé par ce modèle : on réessaie aussitôt en JSON simple
+                log.warning("Schéma refusé par %s, essai sans schéma", modele)
+                del corps["generationConfig"]["responseSchema"]
+                self.dernier = 0.0
+                continue
+            if r.status_code not in (429, 500, 503) or essai == 2:
                 raise RuntimeError(detail)
             log.info("Gemini occupé (%s), nouvel essai dans 30 s", r.status_code)
             time.sleep(30)
