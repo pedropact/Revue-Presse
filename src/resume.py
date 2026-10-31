@@ -90,6 +90,30 @@ class ResumeurLocal:
         appliquer(sujet, r["choices"][0]["message"]["content"])
 
 
+# Structure imposée à la réponse de Gemini : garantit un JSON valide, même pour de longs textes
+SCHEMA_LOT = {
+    "type": "OBJECT",
+    "properties": {
+        "sujets": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "id": {"type": "INTEGER"},
+                    "titre": {"type": "STRING"},
+                    "chapeau": {"type": "STRING"},
+                    "points": {"type": "ARRAY", "items": {"type": "STRING"}},
+                    "texte": {"type": "STRING"},
+                    "ignorer": {"type": "BOOLEAN"},
+                },
+                "required": ["id", "ignorer"],
+            },
+        }
+    },
+    "required": ["sujets"],
+}
+
+
 class QuotaEpuise(Exception):
     pass
 
@@ -111,7 +135,7 @@ class ResumeurGemini:
             "systemInstruction": {"parts": [{"text": SYSTEME_LOT}]},
             "contents": [{"role": "user", "parts": [{"text": texte}]}],
             "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json",
-                                 "maxOutputTokens": 32768},
+                                 "responseSchema": SCHEMA_LOT, "maxOutputTokens": 32768},
         }
         for essai in range(2):
             # Respecte la limite de requêtes par minute du forfait gratuit
