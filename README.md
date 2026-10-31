@@ -11,7 +11,7 @@ App que, uma vez por dia, lê notícias de sites do Quebec e do Canadá (em fran
 3. **Agrupamento**: notícias com títulos semanticamente próximos, em FR ou EN, viram um único "sujet".
 4. **Ranking**: número de veículos diferentes que cobriram o fato + recência + pertinência ao tema.
 5. **Texto completo**: baixado só para as notícias selecionadas e só de sites sem paywall. Para os sites com paywall, usa-se o título e a chamada do RSS.
-6. **Resumo** (`src/resume.py`): o **Google Gemini** (plano gratuito, segredo `GEMINI_API_KEY`) escreve título + 2–3 parágrafos em francês, fundindo as fontes. Sem chave, ou se o Gemini falhar, usa o modelo local Qwen2.5‑1.5B (CPU via llama.cpp).
+6. **Resumo** (`src/resume.py`): o **Google Gemini** (plano gratuito, segredo `GEMINI_API_KEY`) escreve título, frase de destaque, 3 pontos-chave e 3–4 parágrafos em francês, fundindo as fontes. Sem chave, ou se o Gemini falhar, usa o modelo local Qwen2.5‑1.5B (CPU via llama.cpp).
 7. **Site** (`src/site_web.py`): gera `public/` (HTML + `data.json` + PWA), publicado via `wrangler`.
 
 ## Instalação (uma vez só, ~15 min)

@@ -21,8 +21,11 @@ SYSTEME = (
     "- titre : un titre neutre et informatif (12 mots maximum);\n"
     "- chapeau : une seule phrase (30 mots maximum) qui dit l'essentiel;\n"
     "- points : 3 points clés très courts (15 mots maximum chacun), avec les chiffres importants;\n"
-    "- texte : 2 ou 3 paragraphes courts (3 phrases maximum chacun) : contexte, réactions, "
-    "conséquences ou prochaines étapes. Sépare les paragraphes par une ligne vide.\n"
+    "- texte : 3 ou 4 paragraphes de 3 à 4 phrases chacun : ce qui s'est passé en détail, "
+    "le contexte, les chiffres et les réactions, puis les conséquences ou les prochaines étapes. "
+    "Chaque paragraphe se termine par une phrase complète. Sépare les paragraphes par une ligne "
+    "vide. Si les articles contiennent peu d'information, écris 2 paragraphes plutôt que "
+    "d'inventer.\n"
     "N'invente aucun fait, aucun chiffre ni aucune citation. "
     "Un titre accompagné d'un court chapeau suffit pour rédiger un résumé bref. Mets ignorer à "
     "true uniquement si les articles ne contiennent aucune information sur une nouvelle (page "
@@ -81,7 +84,7 @@ class ResumeurLocal:
                 {"role": "user", "content": preparer(sujet, max_articles)},
             ],
             temperature=0.2,
-            max_tokens=1000,
+            max_tokens=1600,
             response_format={"type": "json_object"},
         )
         appliquer(sujet, r["choices"][0]["message"]["content"])
@@ -107,7 +110,8 @@ class ResumeurGemini:
         corps = {
             "systemInstruction": {"parts": [{"text": SYSTEME_LOT}]},
             "contents": [{"role": "user", "parts": [{"text": texte}]}],
-            "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
+            "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json",
+                                 "maxOutputTokens": 32768},
         }
         for essai in range(2):
             # Respecte la limite de requêtes par minute du forfait gratuit
