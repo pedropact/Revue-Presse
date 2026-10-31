@@ -185,12 +185,30 @@ class Resumeur:
                     restants = self.gemini.resumer_lot(restants, max_articles)
                 self.bilan["Gemini"] += len(sujets) - len(restants)
             except Exception as e:
-                log.warning("Gemini a échoué (%s), repli sur le modèle local", e)
+                log.warning("Gemini a échoué sur la section (%s)", e)
                 self.bilan["erreur Gemini : " + " ".join(str(e).split())[:250]] += 0
                 if isinstance(e, QuotaEpuise):
                     self.gemini = None
+                else:
+                    # Réponse illisible ou incomplète pour le lot : on retente sujet par sujet,
+                    # le modèle local ne servant qu'en dernier recours
+                    restants = self.un_par_un(sujets, max_articles)
         for s in restants:
             self.resumer_local(s, max_articles)
+
+    def un_par_un(self, sujets: list[Sujet], max_articles: int) -> list[Sujet]:
+        restants = []
+        for s in sujets:
+            try:
+                if self.gemini and not self.gemini.resumer_lot([s], max_articles):
+                    self.bilan["Gemini"] += 1
+                    continue
+            except QuotaEpuise:
+                self.gemini = None
+            except Exception as e:
+                log.warning("Gemini a échoué sur un sujet (%s)", e)
+            restants.append(s)
+        return restants
 
     def resumer_local(self, sujet: Sujet, max_articles: int) -> None:
         try:
