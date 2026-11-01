@@ -17,7 +17,7 @@ concurrency:
 jobs:
   revue:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     env:
       HF_HOME: /home/runner/.cache/huggingface
       FASTEMBED_CACHE_PATH: /home/runner/.cache/fastembed

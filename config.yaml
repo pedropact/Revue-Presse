@@ -18,11 +18,15 @@ modeles:
   gemini_requetes_par_minute: 4   # le forfait gratuit limite le nombre de requêtes par minute
   embeddings: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
   # Modèle de résumé (GGUF, exécuté sur CPU via llama.cpp).
-  # Pour une meilleure qualité (mais ~2x plus lent) :
-  #   repo: Qwen/Qwen2.5-3B-Instruct-GGUF  /  fichier: qwen2.5-3b-instruct-q4_k_m.gguf
-  llm_repo: Qwen/Qwen2.5-1.5B-Instruct-GGUF
-  llm_fichier: qwen2.5-1.5b-instruct-q4_k_m.gguf
-  llm_contexte: 8192
+  # Modèle principal : « local » (Qwen 2.5 sur le serveur GitHub, Gemini en secours)
+  # ou « gemini » (Gemini, le modèle local en secours).
+  principal: local
+  llm_repo: Qwen/Qwen2.5-3B-Instruct-GGUF
+  llm_fichier: qwen2.5-3b-instruct-q4_k_m.gguf
+  # Le modèle local lit moins de texte que Gemini, pour que la revue reste prête vers 7 h
+  local_max_articles: 3
+  local_max_caracteres: 1500
+  llm_contexte: 4096
 
 # paywall: true  -> on n'utilise que le titre et le chapeau fournis par le flux RSS
 # theme: (optionnel) indice de thème pour un flux de section, donne un léger bonus

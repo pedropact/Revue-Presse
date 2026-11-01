@@ -63,17 +63,18 @@ def main() -> None:
         list(ex.map(lambda a: extraire_texte(a, g["max_caracteres_article"]), a_extraire))
 
     resumeur = None if args.sans_ia else Resumeur(config)
+    nb_par_section = {sec["id"]: sec["nb"] for sec in config["sections"]}
     for section, sujets in par_theme.items():
         log.info("%s : %d sujets", section, len(sujets))
         if resumeur:
-            resumeur.resumer_section(sujets, g["max_articles_par_resume"])
+            resumeur.resumer_section(sujets, g["max_articles_par_resume"], nb_par_section[section])
         else:
             for s in sujets:
                 resume_sans_ia(s)
 
     ecartes = sum(s.ignorer for lst in par_theme.values() for s in lst)
     for sec in config["sections"]:
-        par_theme[sec["id"]] = [s for s in par_theme[sec["id"]] if not s.ignorer][: sec["nb"]]
+        par_theme[sec["id"]] = [s for s in par_theme[sec["id"]] if not (s.ignorer or s.non_resume)][: sec["nb"]]
     if ecartes:
         log.info("%d sujets écartés (aucune information exploitable)", ecartes)
         if os.getenv("GITHUB_ACTIONS"):

@@ -56,6 +56,7 @@ class Sujet:
     points: list[str] = field(default_factory=list)
     resume: str = ""
     ignorer: bool = False
+    non_resume: bool = False  # réserve qui n'a pas servi
 
     @property
     def sources(self) -> set[str]:

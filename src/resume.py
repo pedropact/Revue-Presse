@@ -1,5 +1,9 @@
-"""Résumé (en français) de chaque sujet : Google Gemini si une clé est configurée,
-sinon (ou en cas d'échec) un petit modèle local exécuté sur CPU."""
+"""Résumé (en français) de chaque sujet.
+
+Le modèle principal est choisi dans config.yaml (modeles.principal) :
+- « local » : Qwen 2.5 exécuté sur le processeur du serveur GitHub, Gemini en secours;
+- « gemini » : Google Gemini, le modèle local en secours.
+En dernier recours, le titre et le chapeau du flux RSS sont affichés."""
 
 import json
 import logging
@@ -45,12 +49,12 @@ SYSTEME_LOT = SYSTEME.replace(
 )
 
 
-def preparer(sujet: Sujet, max_articles: int) -> str:
+def preparer(sujet: Sujet, max_articles: int, max_car: int | None = None) -> str:
     # Priorité aux articles avec texte complet, puis aux plus récents
     choisis = sorted(sujet.articles, key=lambda a: (len(a.texte), a.publie), reverse=True)[:max_articles]
     return "\n\n".join(
         f"### Article {i} — {a.source} ({'anglais' if a.langue == 'en' else 'français'})\n"
-        f"Titre : {a.titre}\n{a.texte or a.chapeau}"
+        f"Titre : {a.titre}\n{(a.texte or a.chapeau)[:max_car]}"
         for i, a in enumerate(choisis, 1)
     )
 
@@ -76,10 +80,31 @@ def appliquer(sujet: Sujet, reponse: str) -> None:
     sujet.resume = str(data.get("texte") or data.get("resume") or "").strip()
 
 
+# Structure imposée à la réponse du modèle local (un sujet à la fois)
+SCHEMA_SUJET = {
+    "type": "object",
+    "properties": {
+        "titre": {"type": "string"},
+        "chapeau": {"type": "string"},
+        "points": {"type": "array", "items": {"type": "string"}},
+        "texte": {"type": "string"},
+        "ignorer": {"type": "boolean"},
+    },
+    "required": ["titre", "chapeau", "points", "texte", "ignorer"],
+}
+
+CONSIGNE_LANGUE = (
+    "\nIMPORTANT : écris uniquement en français, jamais en chinois ni en anglais, "
+    "même si les articles sont en anglais."
+)
+
+
 class ResumeurLocal:
     def __init__(self, config: dict):
         from llama_cpp import Llama
         m = config["modeles"]
+        self.max_articles = m["local_max_articles"]
+        self.max_car = m["local_max_caracteres"]
         self.llm = Llama.from_pretrained(
             repo_id=m["llm_repo"],
             filename=m["llm_fichier"],
@@ -88,17 +113,23 @@ class ResumeurLocal:
             verbose=False,
         )
 
-    def resumer(self, sujet: Sujet, max_articles: int) -> None:
-        r = self.llm.create_chat_completion(
-            messages=[
-                {"role": "system", "content": SYSTEME},
-                {"role": "user", "content": preparer(sujet, max_articles)},
-            ],
-            temperature=0.2,
-            max_tokens=1600,
-            response_format={"type": "json_object"},
-        )
-        appliquer(sujet, r["choices"][0]["message"]["content"])
+    def resumer(self, sujet: Sujet) -> None:
+        derniere = None
+        for essai in range(2):  # un second essai si le modèle dérive vers une autre langue
+            r = self.llm.create_chat_completion(
+                messages=[
+                    {"role": "system", "content": SYSTEME + CONSIGNE_LANGUE},
+                    {"role": "user", "content": preparer(sujet, self.max_articles, self.max_car)},
+                ],
+                temperature=0.2 if essai == 0 else 0.1,
+                max_tokens=1600,
+                response_format={"type": "json_object", "schema": SCHEMA_SUJET},
+            )
+            try:
+                return appliquer(sujet, r["choices"][0]["message"]["content"])
+            except ValueError as e:  # JSON invalide, autre langue ou réponse vide
+                derniere = e
+        raise derniere
 
 
 # Structure imposée à la réponse de Gemini : garantit un JSON valide, même pour de longs textes
@@ -211,17 +242,78 @@ class ResumeurGemini:
 
 
 class Resumeur:
-    """Gemini en priorité; le modèle local n'est chargé qu'en cas de besoin."""
-
     def __init__(self, config: dict):
         self.config = config
+        self.principal = config["modeles"].get("principal", "gemini")
         cle = os.getenv("GEMINI_API_KEY")
         self.gemini = ResumeurGemini(config, cle) if cle else None
         self.local = None
+        self.local_hs = False  # le modèle local n'a pas pu être chargé
         self.bilan = Counter()
-        log.info("Résumés : %s", "Google Gemini" if self.gemini else "modèle local")
+        log.info("Résumés : modèle principal %s, Gemini %s",
+                 self.principal, "disponible" if self.gemini else "absent")
 
-    def resumer_section(self, sujets: list[Sujet], max_articles: int) -> None:
+    def noter(self, cle: str, e: Exception) -> None:
+        self.bilan[cle + " : " + " ".join(str(e).split())[:200]] += 0
+
+    def resumer_section(self, sujets: list[Sujet], max_articles: int, nb: int) -> None:
+        if self.principal == "local":
+            self.section_locale(sujets, max_articles, nb)
+        else:
+            self.section_gemini(sujets, max_articles)
+
+    # --- Modèle local en premier -------------------------------------------------------
+
+    def section_locale(self, sujets: list[Sujet], max_articles: int, nb: int) -> None:
+        """Résume dans l'ordre jusqu'à obtenir nb sujets : les réserves ne sont résumées
+        que si un sujet est écarté, ce qui économise beaucoup de temps de calcul."""
+        echecs, retenus = [], 0
+        for s in sujets:
+            if retenus >= nb:
+                s.non_resume = True  # réserve inutile : non résumée, non affichée
+                continue
+            if self.essai_local(s):
+                retenus += not s.ignorer
+            else:
+                echecs.append(s)
+                retenus += 1
+        # Secours : Gemini pour les sujets que le modèle local n'a pas su rédiger
+        restants = echecs
+        if echecs and self.gemini:
+            try:
+                restants = self.gemini.resumer_lot(echecs, max_articles)
+                self.bilan["Gemini (secours)"] += len(echecs) - len(restants)
+            except Exception as e:
+                self.noter("erreur Gemini", e)
+                if isinstance(e, QuotaEpuise):
+                    self.gemini = None
+        for s in restants:
+            resume_sans_ia(s)
+            self.bilan["sans IA"] += 1
+
+    def essai_local(self, sujet: Sujet) -> bool:
+        if self.local_hs:
+            return False
+        try:
+            if self.local is None:
+                self.local = ResumeurLocal(self.config)
+        except Exception as e:
+            self.local_hs = True
+            self.noter("modèle local indisponible", e)
+            return False
+        debut = time.monotonic()
+        try:
+            self.local.resumer(sujet)
+        except Exception as e:
+            self.noter("erreur modèle local", e)
+            return False
+        self.bilan["modèle local"] += 1
+        self.bilan["secondes modèle local"] += round(time.monotonic() - debut)
+        return True
+
+    # --- Gemini en premier -------------------------------------------------------------
+
+    def section_gemini(self, sujets: list[Sujet], max_articles: int) -> None:
         restants = sujets
         if self.gemini and sujets:
             try:
@@ -232,15 +324,16 @@ class Resumeur:
                 self.bilan["Gemini"] += len(sujets) - len(restants)
             except Exception as e:
                 log.warning("Gemini a échoué sur la section (%s)", e)
-                self.bilan["erreur Gemini : " + " ".join(str(e).split())[:250]] += 0
+                self.noter("erreur Gemini", e)
                 if isinstance(e, QuotaEpuise):
                     self.gemini = None
                 else:
-                    # Réponse illisible ou incomplète pour le lot : on retente sujet par sujet,
-                    # le modèle local ne servant qu'en dernier recours
+                    # Réponse illisible ou incomplète pour le lot : on retente sujet par sujet
                     restants = self.un_par_un(sujets, max_articles)
         for s in restants:
-            self.resumer_local(s, max_articles)
+            if not self.essai_local(s):
+                resume_sans_ia(s)
+                self.bilan["sans IA"] += 1
 
     def un_par_un(self, sujets: list[Sujet], max_articles: int) -> list[Sujet]:
         restants = []
@@ -255,18 +348,6 @@ class Resumeur:
                 log.warning("Gemini a échoué sur un sujet (%s)", e)
             restants.append(s)
         return restants
-
-    def resumer_local(self, sujet: Sujet, max_articles: int) -> None:
-        try:
-            if self.local is None:
-                self.local = ResumeurLocal(self.config)
-            self.local.resumer(sujet, max_articles)
-            self.bilan["modèle local"] += 1
-        except Exception as e:
-            log.warning("Résumé impossible (%s), utilisation du texte RSS", e)
-            resume_sans_ia(sujet)
-            self.bilan["sans IA"] += 1
-            self.bilan["erreur modèle local : " + " ".join(str(e).split())[:200]] += 0
 
 
 def resume_sans_ia(sujet: Sujet) -> None:
