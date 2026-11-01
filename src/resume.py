@@ -4,6 +4,7 @@ sinon (ou en cas d'échec) un petit modèle local exécuté sur CPU."""
 import json
 import logging
 import os
+import re
 import time
 from collections import Counter
 
@@ -54,11 +55,21 @@ def preparer(sujet: Sujet, max_articles: int) -> str:
     )
 
 
+# Caractères chinois, japonais ou coréens : signe qu'un modèle a dérivé hors du français
+NON_FRANCAIS = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]")
+
+
 def appliquer(sujet: Sujet, reponse: str) -> None:
     data = json.loads(reponse)
     if data.get("ignorer") is True:
         sujet.ignorer = True
         return
+    contenu = " ".join([str(data.get("titre", "")), str(data.get("chapeau", "")),
+                        str(data.get("texte", "")), *map(str, data.get("points", []))])
+    if NON_FRANCAIS.search(contenu):
+        raise ValueError("texte rédigé dans une autre langue que le français")
+    if not str(data.get("titre", "")).strip():
+        raise ValueError("réponse sans titre")
     sujet.titre = data["titre"].strip()
     sujet.chapeau = str(data.get("chapeau", "")).strip()
     sujet.points = [str(p).strip() for p in data.get("points", []) if str(p).strip()][:4]
@@ -146,7 +157,12 @@ class ResumeurGemini:
             r = requests.post(self.URL.format(modele), json=corps, timeout=300,
                               headers={"x-goog-api-key": self.cle})
             if r.ok:
-                parts = r.json()["candidates"][0]["content"]["parts"]
+                candidat = r.json()["candidates"][0]
+                fin = candidat.get("finishReason", "STOP")
+                if fin != "STOP":
+                    # Ex. MAX_TOKENS (réponse coupée) ou RECITATION (trop proche d'un texte source)
+                    raise RuntimeError(f"{modele} : réponse interrompue ({fin})")
+                parts = candidat["content"]["parts"]
                 return "".join(p["text"] for p in parts if not p.get("thought"))
             detail = f"{modele} HTTP {r.status_code} : {r.text[:200]}"
             if r.status_code == 429 and "PerDay" in r.text:
