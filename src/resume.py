@@ -49,10 +49,17 @@ SYSTEME_LOT = SYSTEME.replace(
 )
 
 
+SEUIL_PEU_DE_MATIERE = 600
+
+
 def preparer(sujet: Sujet, max_articles: int, max_car: int | None = None) -> str:
     # Priorité aux articles avec texte complet, puis aux plus récents
     choisis = sorted(sujet.articles, key=lambda a: (len(a.texte), a.publie), reverse=True)[:max_articles]
-    return "\n\n".join(
+    matiere = sum(len((a.texte or a.chapeau)[:max_car]) for a in choisis)
+    note = ("NOTE : ces articles ne contiennent qu'un titre et quelques lignes. Rédige un seul "
+            "paragraphe court, sans rien ajouter qui ne figure pas ci-dessous.\n\n"
+            if matiere < SEUIL_PEU_DE_MATIERE else "")
+    return note + "\n\n".join(
         f"### Article {i} — {a.source} ({'anglais' if a.langue == 'en' else 'français'})\n"
         f"Titre : {a.titre}\n{(a.texte or a.chapeau)[:max_car]}"
         for i, a in enumerate(choisis, 1)
@@ -63,8 +70,35 @@ def preparer(sujet: Sujet, max_articles: int, max_car: int | None = None) -> str
 NON_FRANCAIS = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]")
 
 
+MOTS_EN = {"the", "and", "of", "to", "in", "is", "for", "on", "with", "that", "was", "are", "says", "after", "from", "his", "her", "its", "will", "has", "as", "by", "at", "new", "over", "amid", "says"}
+MOTS_FR = {"le", "la", "les", "de", "des", "du", "et", "en", "un", "une", "est", "pour", "que", "dans", "sur", "au", "aux", "qui", "par", "pas"}
+
+
+def semble_anglais(texte: str) -> bool:
+    mots = re.findall(r"[a-zàâçéèêëîïôûùüÿœ']+", texte.lower())
+    en = sum(m in MOTS_EN for m in mots)
+    fr = sum(m in MOTS_FR for m in mots)
+    # Un titre court peut ne contenir qu'un seul mot-outil anglais (« Bank of Canada holds... »)
+    return en > fr and en >= (1 if len(mots) < 15 else 2)
+
+
+def sans_repetitions(texte: str) -> str:
+    """Retire les paragraphes et les phrases répétés (défaut fréquent des petits modèles)."""
+    vus, paragraphes = set(), []
+    for par in re.split(r"\n\s*\n|\n", texte):
+        phrases = []
+        for ph in re.split(r"(?<=[.!?])\s+", par.strip()):
+            cle = re.sub(r"\W+", " ", ph.lower()).strip()
+            if cle and cle not in vus:
+                vus.add(cle)
+                phrases.append(ph)
+        if phrases:
+            paragraphes.append(" ".join(phrases))
+    return "\n\n".join(paragraphes)
+
+
 def appliquer(sujet: Sujet, reponse: str) -> None:
-    data = json.loads(reponse)
+    data = json.loads(reponse, strict=False)  # tolère les retours à la ligne dans les textes
     if data.get("ignorer") is True:
         sujet.ignorer = True
         return
@@ -74,10 +108,13 @@ def appliquer(sujet: Sujet, reponse: str) -> None:
         raise ValueError("texte rédigé dans une autre langue que le français")
     if not str(data.get("titre", "")).strip():
         raise ValueError("réponse sans titre")
+    if semble_anglais(str(data.get("titre", ""))) or semble_anglais(str(data.get("texte", ""))[:600]):
+        raise ValueError("texte rédigé en anglais")
     sujet.titre = data["titre"].strip()
     sujet.chapeau = str(data.get("chapeau", "")).strip()
     sujet.points = [str(p).strip() for p in data.get("points", []) if str(p).strip()][:4]
-    sujet.resume = str(data.get("texte") or data.get("resume") or "").strip()
+    sujet.resume = sans_repetitions(str(data.get("texte") or data.get("resume") or "").strip())
+    sujet.points = list(dict.fromkeys(sujet.points))
 
 
 # Structure imposée à la réponse du modèle local (un sujet à la fois)
