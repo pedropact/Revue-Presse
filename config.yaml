@@ -319,15 +319,22 @@ marqueurs_canada: [Canada, canadien, canadienne, canadiens, Canadian, Canadians,
 # (les grands médias sont tous à Montréal), mais compte si un média régional en parle.
 regional:
   section: regional
-  description: "nouvelles locales de Longueuil, Brossard, Boucherville, de la Rive-Sud, de la Montérégie et de Montréal"
+  description: "nouvelles locales de la Rive-Sud de MONTRÉAL (Longueuil, Brossard, Boucherville, Saint-Lambert...), du reste de la Montérégie et de Montréal; jamais la Rive-Sud de Québec (Lévis) ni la région de Québec"
   villes:
     - poids: 3
-      villes: [Longueuil, "Vieux-Longueuil", "Saint-Hubert", "Greenfield Park", LeMoyne, Brossard, Boucherville, "Rive-Sud", "South Shore", "Saint-Lambert", "Saint-Bruno-de-Montarville", "Saint-Bruno", RTL, "agglomération de Longueuil"]
+      villes: [Longueuil, "Vieux-Longueuil", "Saint-Hubert", "Greenfield Park", LeMoyne, Brossard, Boucherville, "Rive-Sud de Montréal", "South Shore of Montreal", "Montreal's South Shore", "Saint-Lambert", "Saint-Bruno-de-Montarville", "Saint-Bruno", RTL, "agglomération de Longueuil"]
+    # « Rive-Sud » seul est ambigu (Lévis est la Rive-Sud de Québec) : petit bonus seulement
+    - poids: 1
+      admissible: false
+      villes: ["Rive-Sud", "South Shore"]
     - poids: 1.5
       villes: [Montérégie, Monteregie, "Saint-Jean-sur-Richelieu", Granby, "Saint-Hyacinthe", Châteauguay, "Vaudreuil-Dorion", "Sorel-Tracy", "Salaberry-de-Valleyfield", Valleyfield, Chambly, Beloeil, "La Prairie", Candiac, "Sainte-Julie", Varennes, "Mont-Saint-Hilaire", Delson, "Saint-Constant", "Sainte-Catherine", Carignan, McMasterville, "Otterburn Park", "Saint-Basile-le-Grand", "Saint-Amable", Contrecœur, "Saint-Lazare", Mercier, Beauharnois, Cowansville, "Bromont"]
     - poids: 0.5
       admissible: false
       villes: [Montréal, Montreal, SPVM, STM]
+  # Région de Québec : si l'une de ces mentions apparaît sans aucune ville de notre région,
+  # la nouvelle n'entre pas dans la section régionale
+  exclure: [Lévis, "ville de Québec", "Québec City", "Capitale-Nationale", "Chaudière-Appalaches", "Jean-Lesage", YQB, Beauport, "Sainte-Foy", Charlesbourg, Lauzon, "Saint-Romuald", Saguenay, Sherbrooke, Gatineau, "Trois-Rivières"]
   themes_prioritaires: [securite, circulation, politique, economie, sante, education]
   poids_theme_prioritaire: 2.0
   poids_autre_theme: 0.5

@@ -24,6 +24,7 @@ class Regional:
         self.theme_par_section = {sec["id"]: r["themes_par_categorie"].get(sec["categorie"], sec["categorie"])
                                   for sec in config["sections"]}
         self.circulation = _motifs(r["mots_circulation"])
+        self.exclure = _motifs(r.get("exclure", [])) if r.get("exclure") else None
         self.themes_prioritaires = set(r["themes_prioritaires"])
         self.poids_theme = r["poids_theme_prioritaire"], r["poids_autre_theme"]
 
@@ -40,9 +41,16 @@ class Regional:
         texte = self._texte(s)
         return any(adm and motif.search(texte) for motif, _, adm in self.villes)
 
+    def hors_region(self, s: Sujet) -> bool:
+        """Parle d'une autre région du Québec (ex. Lévis, Rive-Sud de Québec) sans mentionner
+        aucune ville de la nôtre."""
+        return bool(self.exclure and self.exclure.search(self._texte(s))) and not self.ville_mentionnee(s)
+
     def admissible(self, s: Sujet) -> bool:
         """Publié par un média régional, ou mentionne une ville de la Rive-Sud ou de la Montérégie
         (une simple mention de Montréal ne suffit pas : les grands médias y sont tous basés)."""
+        if self.hors_region(s):
+            return False
         if s.sources & self.sources:
             return True
         texte = self._texte(s)

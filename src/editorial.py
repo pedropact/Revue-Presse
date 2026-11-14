@@ -92,6 +92,10 @@ def editorialiser(sujets: list[Sujet], config: dict, ds: DeepSeek) -> dict[str, 
         s.theme = secs[0]
         s.score = (1.0 * len(s.sources) + 0.2 * min(len(articles), 6)
                    + 1.0 * math.exp(-heures / 12) + 1.0 * importance)
+        if reg and reg.section in secs and reg.hors_region(s):
+            secs.remove(reg.section)  # ex. Rive-Sud de Québec classée à tort dans notre section
+            if not secs:
+                continue
         if reg and reg.section in secs:
             autre = next((x for x in secs if x != reg.section), None)
             s.score_regional = reg.score(s, reg.theme(s, ev.get("theme_regional"), autre))
