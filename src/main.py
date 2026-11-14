@@ -33,12 +33,55 @@ def verifier_flux(config: dict) -> None:
             print(f"{'OK ' if n else 'ÉCHEC'} {n:3d}  {s['nom']:<20} {f['url']}")
 
 
+def diagnostiquer(motif: str, articles: list, sujets: list, config: dict) -> None:
+    """Explique où sont passés les articles qui contiennent un motif (sans rien publier)."""
+    import copy
+    import re
+
+    import numpy as np
+
+    rx = re.compile(motif, re.IGNORECASE)
+    touches = {id(a) for a in articles if rx.search(f"{a.titre} {a.chapeau}")}
+    seuil = config["general"]["seuil_theme"]
+    large = copy.deepcopy(config)
+    large["general"]["reserve_par_section"] = 10_000
+    rangs = {}
+    for sec_id, lst in selectionner(sujets, large).items():
+        for i, s in enumerate(lst, 1):
+            rangs[id(s)] = (sec_id, i, len(lst))
+    nb = {sec["id"]: sec["nb"] for sec in config["sections"]}
+    lignes = []
+    for s in sujets:
+        if not any(id(a) in touches for a in s.articles):
+            continue
+        moy = {c["id"]: float(np.mean([a.themes[c["id"]] for a in s.articles])) for c in config["categories"]}
+        top = ", ".join(f"{c} {v:.2f}" for c, v in sorted(moy.items(), key=lambda kv: -kv[1])[:3])
+        if id(s) in rangs:
+            sec, r, total = rangs[id(s)]
+            etat = f"section {sec}, rang {r}/{total} ({'AFFICHÉ' if r <= nb[sec] else 'hors des ' + str(nb[sec]) + ' premiers'})"
+        elif max(moy.values()) < seuil:
+            etat = f"ÉCARTÉ : aucun thème assez proche (meilleur {max(moy.values()):.2f} < seuil {seuil})"
+        else:
+            etat = "ÉCARTÉ : aucune section pour ce thème et cette portée"
+        titre = max(s.articles, key=lambda a: a.langue == "fr").titre
+        lignes.append(f"{titre[:90]} | {len(s.sources)} médias | thèmes : {top} | {etat}")
+    print(f"\n=== Diagnostic « {motif} » : {len(touches)} articles, {len(lignes)} sujets ===")
+    for l in lignes:
+        print(l)
+    if os.getenv("GITHUB_ACTIONS"):
+        print(f"::notice::Diagnostic « {motif} » : {len(touches)} articles trouvés, {len(lignes)} sujets")
+        for l in lignes[:8]:  # GitHub n'affiche qu'un nombre limité d'annotations
+            print(f"::notice::{l}")
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--config", default=RACINE / "config.yaml", type=Path)
     p.add_argument("--sortie", default=RACINE / "public", type=Path)
     p.add_argument("--sans-ia", action="store_true")
     p.add_argument("--verifier-flux", action="store_true")
+    p.add_argument("--diagnostic", metavar="MOTIF",
+                   help="explique ce qui est arrivé aux articles contenant ce motif, sans publier")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -54,6 +97,8 @@ def main() -> None:
     enc = Encodeur(config["modeles"]["embeddings"])
     classer_themes(articles, enc.encoder([a.texte_court() for a in articles]), config, enc)
     sujets = regrouper(articles, enc.encoder([a.titre for a in articles]), g["seuil_regroupement"])
+    if args.diagnostic:
+        return diagnostiquer(args.diagnostic, articles, sujets, config)
     par_theme = selectionner(sujets, config)
     retenus = [s for lst in par_theme.values() for s in lst]
 
