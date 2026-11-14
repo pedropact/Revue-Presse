@@ -60,16 +60,19 @@ sources:
       - url: https://www.tvanouvelles.ca/regional/tva-montreal/monteregie/rss.xml
 
   # Sites sans flux RSS : lecture de la page de la rubrique (type: page)
-  - nom: Radio-Canada Montréal
-    langue: fr
-    paywall: false
-    regional: true
-    flux:
-      - type: page
-        url: https://ici.radio-canada.ca/regions/montreal-environs
-        # Articles récents : /info/2xxxxxx/titre (les numéros plus anciens sont des pages permanentes)
-        motif: '(?:https://ici\.radio-canada\.ca)?/info/2\d{6}/[a-z0-9-]+'
-        remplacer: ["/info/", "/nouvelle/"]
+  # Radio-Canada Montréal : désactivé pour l'instant. La page liste des adresses internes
+  # (/info/…) qui ne mènent pas aux articles; les grandes nouvelles de Montréal arrivent
+  # déjà par les flux nationaux de Radio-Canada.
+  # - nom: Radio-Canada Montréal
+  #   langue: fr
+  #   paywall: false
+  #   regional: true
+  #   flux:
+  #     - type: page
+  #       url: https://ici.radio-canada.ca/regions/montreal-environs
+  #       # Articles récents : /info/2xxxxxx/titre (les numéros plus anciens sont des pages permanentes)
+  #       motif: '(?:https://ici\.radio-canada\.ca)?/info/2\d{6}/[a-z0-9-]+'
+  #       remplacer: ["/info/", "/nouvelle/"]
 
   - nom: Noovo Info Montérégie
     langue: fr
