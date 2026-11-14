@@ -30,6 +30,7 @@ Em *Settings → Secrets and variables → Actions → New repository secret*, c
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `GEMINI_API_KEY`: chave gratuita criada em https://aistudio.google.com/apikey
+- `DEEPSEEK_API_KEY`: chave da API DeepSeek (https://platform.deepseek.com). A DeepSeek agrupa as matérias por evento, escolhe até 2 seções por evento e escreve os resumos; Gemini e o Qwen local ficam de reserva.
 - `GH_DECLENCHEUR_TOKEN`: token do GitHub (fine-grained, só este repositório, permissão **Actions: Read and write**), usado pelo Worker do Cloudflare para disparar a revue
 
 O token do Cloudflare precisa de duas permissões: **Cloudflare Pages → Edit** e **Workers Scripts → Edit**. Depois, rode uma vez *Actions → Déployer le déclencheur Cloudflare*.

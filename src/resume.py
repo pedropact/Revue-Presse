@@ -278,12 +278,38 @@ class ResumeurGemini:
         return restants
 
 
+class ResumeurDeepSeek:
+    """Résume quelques sujets par appel avec l'API DeepSeek."""
+
+    TAILLE_LOT = 4
+
+    def __init__(self, config: dict, cle: str):
+        from deepseek import DeepSeek
+        self.ds = DeepSeek(cle, config["modeles"]["deepseek_modele"])
+
+    def resumer_lot(self, sujets: list[Sujet], max_articles: int) -> list[Sujet]:
+        texte = "\n\n".join(
+            f"======== SUJET {i} ========\n{preparer(s, max_articles)}" for i, s in enumerate(sujets, 1)
+        )
+        reponse = self.ds.json(SYSTEME_LOT, texte, max_tokens=8000)
+        restants = []
+        resultats = {int(r.get("id", 0)): r for r in reponse.get("sujets", []) if isinstance(r, dict)}
+        for i, s in enumerate(sujets, 1):
+            try:
+                appliquer(s, json.dumps(resultats[i]))
+            except (KeyError, TypeError, ValueError):
+                restants.append(s)
+        return restants
+
+
 class Resumeur:
     def __init__(self, config: dict):
         self.config = config
         self.principal = config["modeles"].get("principal", "gemini")
         cle = os.getenv("GEMINI_API_KEY")
         self.gemini = ResumeurGemini(config, cle) if cle else None
+        cle_ds = os.getenv("DEEPSEEK_API_KEY")
+        self.deepseek = ResumeurDeepSeek(config, cle_ds) if cle_ds else None
         self.local = None
         self.local_hs = False  # le modèle local n'a pas pu être chargé
         self.bilan = Counter()
@@ -294,10 +320,33 @@ class Resumeur:
         self.bilan[cle + " : " + " ".join(str(e).split())[:200]] += 0
 
     def resumer_section(self, sujets: list[Sujet], max_articles: int, nb: int) -> None:
-        if self.principal == "local":
+        # Un événement peut figurer dans deux sections : il n'est résumé qu'une fois
+        a_faire = [s for s in sujets if not s.titre and not s.ignorer]
+        if self.principal == "deepseek" and self.deepseek:
+            self.section_deepseek(a_faire, max_articles)
+        elif self.principal == "local":
             self.section_locale(sujets, max_articles, nb)
         else:
-            self.section_gemini(sujets, max_articles)
+            self.section_gemini(a_faire, max_articles)
+
+    # --- DeepSeek en premier ------------------------------------------------------------
+
+    def section_deepseek(self, sujets: list[Sujet], max_articles: int) -> None:
+        restants = []
+        taille = ResumeurDeepSeek.TAILLE_LOT
+        for lot in (sujets[i:i + taille] for i in range(0, len(sujets), taille)):
+            try:
+                reste = self.deepseek.resumer_lot(lot, max_articles)
+                if reste:  # sujet oublié ou refusé : un second essai pour ceux-là
+                    reste = self.deepseek.resumer_lot(reste, max_articles)
+            except Exception as e:
+                log.warning("DeepSeek a échoué (%s)", e)
+                self.noter("erreur DeepSeek", e)
+                reste = lot
+            self.bilan["DeepSeek"] += len(lot) - len(reste)
+            restants += reste
+        # Secours : Gemini, puis le modèle local, puis le texte RSS
+        self.section_gemini(restants, max_articles)
 
     # --- Modèle local en premier -------------------------------------------------------
 
@@ -306,6 +355,10 @@ class Resumeur:
         que si un sujet est écarté, ce qui économise beaucoup de temps de calcul."""
         echecs, retenus = [], 0
         for s in sujets:
+            if s.titre:  # déjà résumé pour une autre section
+                s.non_resume = False
+                retenus += not s.ignorer
+                continue
             if retenus >= nb:
                 s.non_resume = True  # réserve inutile : non résumée, non affichée
                 continue

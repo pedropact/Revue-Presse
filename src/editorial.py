@@ -1,0 +1,75 @@
+"""Choix éditorial par l'IA : regroupe les articles qui racontent le même événement et
+attribue à chaque événement une ou deux sections (ex. une manifestation qui tourne à
+l'affrontement avec la police : Société et Sécurité)."""
+
+import logging
+import math
+from datetime import datetime, timezone
+
+from analyse import Sujet
+from deepseek import DeepSeek
+
+log = logging.getLogger(__name__)
+
+MAX_CANDIDATS = 220
+
+
+def editorialiser(sujets: list[Sujet], config: dict, ds: DeepSeek) -> dict[str, list[Sujet]]:
+    g = config["general"]
+    # Les pré-regroupements par similarité servent de point de départ; l'IA les fusionne au besoin
+    candidats = sorted(sujets, key=lambda s: (len(s.sources), s.plus_recent), reverse=True)[:MAX_CANDIDATS]
+    lignes = []
+    for i, s in enumerate(candidats):
+        titres = " / ".join(dict.fromkeys(a.titre[:120] for a in s.articles))[:300]
+        lignes.append(f"{i}: {titres} [{', '.join(sorted(s.sources))}]")
+
+    descriptions = {c["id"]: c["descriptions"][0] for c in config["categories"]}
+    sections = "\n".join(
+        f"- {sec['id']} : {sec['titre']} ({descriptions.get(sec['categorie'], '')})"
+        for sec in config["sections"]
+    )
+    max_sec = g.get("max_sections_par_sujet", 2)
+    systeme = (
+        "Tu es le rédacteur en chef d'une revue de presse sur l'actualité du Québec et du Canada. "
+        "On te donne une liste numérotée de nouvelles (titres de médias québécois et canadiens, "
+        "en français ou en anglais). Ta tâche :\n"
+        "1. Regroupe les numéros qui racontent le MÊME événement, même si les titres sont très "
+        "différents ou dans des langues différentes.\n"
+        f"2. Pour chaque événement, choisis de 0 à {max_sec} sections dans la liste ci-dessous, "
+        "la plus pertinente en premier. Ajoute une seconde section seulement si l'événement la "
+        "concerne vraiment (ex. une manifestation étudiante avec affrontements policiers : "
+        "societe puis securite). Laisse la liste vide pour les sports, les spectacles, la "
+        "météo, les faits divers mineurs et ce qui ne concerne pas le Canada ou le Québec.\n"
+        "3. Donne une importance de 1 (mineur) à 5 (majeur) pour le public québécois.\n\n"
+        f"Sections :\n{sections}\n\n"
+        'Réponds uniquement en JSON : {"evenements": [{"ids": [3, 17], "sections": ["societe", '
+        '"securite"], "importance": 4}, ...]}. Chaque numéro apparaît dans un seul événement; '
+        "n'inclus pas les événements sans section."
+    )
+    reponse = ds.json(systeme, "\n".join(lignes), max_tokens=8000)
+
+    valides = {sec["id"] for sec in config["sections"]}
+    maintenant = datetime.now(timezone.utc)
+    par_section = {sec["id"]: [] for sec in config["sections"]}
+    deja = set()
+    for ev in reponse.get("evenements", []):
+        ids = [i for i in ev.get("ids", []) if isinstance(i, int) and 0 <= i < len(candidats) and i not in deja]
+        secs = [x for x in ev.get("sections", []) if x in valides][:max_sec]
+        if not ids or not secs:
+            continue
+        deja.update(ids)
+        articles = [a for i in ids for a in candidats[i].articles]
+        s = Sujet(articles=articles)
+        heures = (maintenant - s.plus_recent).total_seconds() / 3600
+        importance = max(1, min(5, int(ev.get("importance", 2))))
+        s.theme = secs[0]
+        s.score = (1.0 * len(s.sources) + 0.2 * min(len(articles), 6)
+                   + 1.0 * math.exp(-heures / 12) + 1.0 * importance)
+        for sec in secs:
+            par_section[sec].append(s)
+
+    for sec in config["sections"]:
+        garde = sec["nb"] + g.get("reserve_par_section", 0)
+        par_section[sec["id"]] = sorted(par_section[sec["id"]], key=lambda s: s.score, reverse=True)[:garde]
+    log.info("Choix éditorial : %d événements retenus", sum(len(v) for v in par_section.values()))
+    return par_section

@@ -16,6 +16,8 @@ import yaml
 
 from analyse import Encodeur, classer_themes, regrouper, selectionner
 from collecte import collecter, extraire_texte, lire_flux
+from deepseek import DeepSeek
+from editorial import editorialiser
 from jeton import avis_jeton
 from resume import Resumeur, resume_sans_ia
 from site_web import generer
@@ -33,7 +35,7 @@ def verifier_flux(config: dict) -> None:
             print(f"{'OK ' if n else 'ÉCHEC'} {n:3d}  {s['nom']:<20} {f['url']}")
 
 
-def diagnostiquer(motif: str, articles: list, sujets: list, config: dict) -> None:
+def diagnostiquer(motif: str, articles: list, sujets: list, config: dict, editorial: dict | None = None) -> None:
     """Explique où sont passés les articles qui contiennent un motif (sans rien publier)."""
     import copy
     import re
@@ -46,6 +48,25 @@ def diagnostiquer(motif: str, articles: list, sujets: list, config: dict) -> Non
     large = copy.deepcopy(config)
     large["general"]["reserve_par_section"] = 10_000
     rangs = {}
+    if editorial is not None:
+        # Choix fait par l'IA : on affiche les événements et toutes leurs sections
+        nb = {sec["id"]: sec["nb"] for sec in config["sections"]}
+        lignes = []
+        for sec_id, lst in editorial.items():
+            for i, s in enumerate(lst, 1):
+                if any(id(a) in touches for a in s.articles):
+                    titre = max(s.articles, key=lambda a: a.langue == "fr").titre
+                    etat = "AFFICHÉ" if i <= nb[sec_id] else f"hors des {nb[sec_id]} premiers"
+                    lignes.append(f"[IA] {sec_id} rang {i}/{len(lst)} ({etat}) | {titre[:80]} | "
+                                  f"{len(s.articles)} articles, {len(s.sources)} médias")
+        print(f"\n=== Diagnostic IA « {motif} » ===")
+        for l in lignes:
+            print(l)
+        if os.getenv("GITHUB_ACTIONS"):
+            print(f"::notice::Diagnostic IA « {motif} » : {len(touches)} articles trouvés, {len(lignes)} placements")
+            for l in lignes[:8]:
+                print(f"::notice::{l}")
+        return
     for sec_id, lst in selectionner(sujets, large).items():
         for i, s in enumerate(lst, 1):
             rangs[id(s)] = (sec_id, i, len(lst))
@@ -102,9 +123,21 @@ def main() -> None:
     textes = [a.titre if g.get("regrouper_sur") == "titre" else f"{a.titre}. {a.chapeau[:300]}"
               for a in articles]
     sujets = regrouper(articles, enc.encoder(textes), g["seuil_regroupement"])
+    par_theme = None
+    cle_ds = os.getenv("DEEPSEEK_API_KEY")
+    if g.get("editorial") == "deepseek" and cle_ds and not args.sans_ia:
+        try:
+            par_theme = editorialiser(sujets, config, DeepSeek(cle_ds, config["modeles"]["deepseek_modele"]))
+            if os.getenv("GITHUB_ACTIONS"):
+                print("::notice::Choix des sujets et des sections : DeepSeek")
+        except Exception as e:
+            log.warning("Choix éditorial par DeepSeek impossible (%s), méthode par similarité", e)
+            if os.getenv("GITHUB_ACTIONS"):
+                print("::warning::Choix éditorial DeepSeek impossible : " + " ".join(str(e).split())[:200])
     if args.diagnostic:
-        return diagnostiquer(args.diagnostic, articles, sujets, config)
-    par_theme = selectionner(sujets, config)
+        return diagnostiquer(args.diagnostic, articles, sujets, config, par_theme)
+    if par_theme is None:
+        par_theme = selectionner(sujets, config)
     retenus = [s for lst in par_theme.values() for s in lst]
 
     # Texte complet seulement pour les sujets retenus (beaucoup moins de requêtes)

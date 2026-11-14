@@ -5,6 +5,8 @@ general:
   langue_sortie: fr
   fenetre_heures: 30          # n'utilise que les articles publiés dans les X dernières heures
   seuil_theme: 0.33           # similarité minimale pour classer un article dans un thème
+  editorial: deepseek          # l'IA regroupe les événements et choisit les sections (« similarite » pour l'ancienne méthode)
+  max_sections_par_sujet: 2    # un événement peut paraître dans deux sections (ex. Société et Sécurité)
   regrouper_sur: titre_chapeau  # « titre » ou « titre_chapeau »
   seuil_regroupement: 0.62    # similarité minimale pour considérer deux articles comme le même sujet
   reserve_par_section: 2       # sujets supplémentaires résumés pour remplacer ceux que l'IA écarte
@@ -21,7 +23,8 @@ modeles:
   # Modèle de résumé (GGUF, exécuté sur CPU via llama.cpp).
   # Modèle principal : « local » (Qwen 2.5 sur le serveur GitHub, Gemini en secours)
   # ou « gemini » (Gemini, le modèle local en secours).
-  principal: local
+  principal: deepseek          # « deepseek », « gemini » ou « local »
+  deepseek_modele: deepseek-chat
   llm_repo: Qwen/Qwen2.5-3B-Instruct-GGUF
   llm_fichier: qwen2.5-3b-instruct-q4_k_m.gguf
   # Le modèle local lit moins de texte que Gemini, pour que la revue reste prête vers 7 h
