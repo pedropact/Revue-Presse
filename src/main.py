@@ -124,10 +124,18 @@ def decouvrir_flux(urls: list[str]) -> None:
         candidats += [url.rstrip("/") + "/feed/", url.rstrip("/") + "/rss", base + "/feed/", base + "/rss.xml", base + "/rss"]
         resultats = []
         for c in dict.fromkeys(candidats):
-            n = len(lire_flux({"nom": "test", "langue": "fr"}, {"url": c}, debut))
-            if n:
-                resultats.append(f"{c} ({n} articles)")
-        message = f"{url} → " + ("; ".join(resultats) if resultats else "AUCUN FLUX RSS TROUVÉ")
+            lus = lire_flux({"nom": "test", "langue": "fr"}, {"url": c}, debut)
+            if lus:
+                resultats.append(f"{c} ({len(lus)} articles, 1er : « {lus[0].titre[:60]} »)")
+        if not resultats:
+            # Pas de flux : liens d'articles visibles sur la page, pour configurer une lecture de page
+            try:
+                liens = re.findall(r'href=["\'](/[^"\'#?]{25,})["\']', page)
+                liens = [l for l in dict.fromkeys(liens) if l.count("-") >= 3][:6]
+                resultats.append("AUCUN FLUX RSS. Liens d'articles : " + " ".join(liens))
+            except Exception:
+                resultats.append("AUCUN FLUX RSS TROUVÉ")
+        message = f"{url} → " + "; ".join(resultats)
         print(message)
         if os.getenv("GITHUB_ACTIONS"):
             print("::notice::" + message[:900])
