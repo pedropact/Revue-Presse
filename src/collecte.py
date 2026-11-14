@@ -108,7 +108,7 @@ def lire_page(source: dict, flux: dict, limite: datetime) -> list[Article]:
     if not trouves:
         detail = (f"Aucun lien d'article trouvé sur {url} (HTTP {r.status_code}, {len(r.text)} caractères, "
                   f"{r.text.count('nouvelle')} mentions de « nouvelle », extrait : "
-                  + " ".join(re.findall(r"[\w/.:-]*nouvelle[\w/.:-]*", r.text)[:5]) + ")")
+                  + " ".join(list(dict.fromkeys(re.findall(r"/[a-z-]+/\d{6,}[/\w-]{0,60}", texte)))[:6]) + ")")
         log.warning(detail)
         if os.getenv("GITHUB_ACTIONS"):
             print("::warning::" + detail[:900])
