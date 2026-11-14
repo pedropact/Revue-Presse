@@ -49,6 +49,14 @@ def diagnostiquer(motif: str, articles: list, sujets: list, config: dict, editor
 
     rx = re.compile(motif, re.IGNORECASE)
     touches = {id(a) for a in articles if rx.search(f"{a.titre} {a.chapeau}")}
+    # Quantité de texte que l'IA recevrait pour chaque article trouvé
+    for a in [a for a in articles if id(a) in touches][:8]:
+        extraire_texte(a, config["general"]["max_caracteres_article"])
+        ligne = (f"Texte disponible : {a.source} — « {a.titre[:60]} » : chapeau {len(a.chapeau)} car., "
+                 f"texte {len(a.texte)} car.{' (paywall : chapeau seulement)' if a.paywall else ''}")
+        print(ligne)
+        if os.getenv("GITHUB_ACTIONS"):
+            print("::notice::" + ligne)
     seuil = config["general"]["seuil_theme"]
     large = copy.deepcopy(config)
     large["general"]["reserve_par_section"] = 10_000
