@@ -28,87 +28,24 @@ log = logging.getLogger("revue")
 
 
 def verifier_flux(config: dict) -> None:
+    """Teste chaque flux et, pour le premier article, la récupération du texte complet."""
     from datetime import datetime, timezone
     debut = datetime(2000, 1, 1, tzinfo=timezone.utc)
+    lignes = []
     for s in config["sources"]:
         for f in s["flux"]:
             lus = lire_flux(s, f, debut)
-            ligne = (f"{'OK' if lus else 'ÉCHEC'} {len(lus):3d}  {s['nom']} {f['url']}"
-                     + (f" — 1er : « {lus[0].titre[:60]} »" if lus else ""))
-            print(ligne)
-            if os.getenv("GITHUB_ACTIONS") and (s.get("regional") or not lus):
-                print("::notice::" + ligne)
-
-
-def diagnostiquer(motif: str, articles: list, sujets: list, config: dict, editorial: dict | None = None) -> None:
-    """Explique où sont passés les articles qui contiennent un motif (sans rien publier)."""
-    import copy
-    import re
-
-    import numpy as np
-
-    rx = re.compile(motif, re.IGNORECASE)
-    touches = {id(a) for a in articles if rx.search(f"{a.titre} {a.chapeau}")}
-    # Quantité de texte que l'IA recevrait pour chaque article trouvé
-    for a in [a for a in articles if id(a) in touches][:8]:
-        extraire_texte(a, config["general"]["max_caracteres_article"])
-        ligne = (f"Texte disponible : {a.source} — « {a.titre[:60]} » : chapeau {len(a.chapeau)} car., "
-                 f"texte {len(a.texte)} car.{' (paywall : chapeau seulement)' if a.paywall else ''}"
-                 f"{' — ' + a.extraction if a.extraction else ''}")
-        print(ligne)
-        if os.getenv("GITHUB_ACTIONS"):
-            print("::notice::" + ligne)
-    seuil = config["general"]["seuil_theme"]
-    large = copy.deepcopy(config)
-    large["general"]["reserve_par_section"] = 10_000
-    rangs = {}
-    if editorial is not None:
-        # Choix fait par l'IA : on affiche les événements et toutes leurs sections
-        nb = {sec["id"]: sec["nb"] for sec in config["sections"]}
-        lignes = []
-        for sec_id, lst in editorial.items():
-            for i, s in enumerate(lst, 1):
-                if any(id(a) in touches for a in s.articles):
-                    titre = max(s.articles, key=lambda a: a.langue == "fr").titre
-                    etat = "AFFICHÉ" if i <= nb[sec_id] else f"hors des {nb[sec_id]} premiers"
-                    lignes.append(f"[IA] {sec_id} rang {i}/{len(lst)} ({etat}) | {titre[:80]} | "
-                                  f"{len(s.articles)} articles, {len(s.sources)} médias")
-        print(f"\n=== Diagnostic IA « {motif} » ===")
-        for l in lignes:
-            print(l)
-        if os.getenv("GITHUB_ACTIONS"):
-            print(f"::notice::Diagnostic IA « {motif} » : {len(touches)} articles trouvés, {len(lignes)} placements")
-            for l in lignes[:8]:
-                print(f"::notice::{l}")
-        return
-    for sec_id, lst in selectionner(sujets, large).items():
-        for i, s in enumerate(lst, 1):
-            rangs[id(s)] = (sec_id, i, len(lst))
-    nb = {sec["id"]: sec["nb"] for sec in config["sections"]}
-    lignes = []
-    for s in sujets:
-        if not any(id(a) in touches for a in s.articles):
-            continue
-        moy = {c["id"]: float(np.mean([a.themes[c["id"]] for a in s.articles])) for c in config["categories"]}
-        top = ", ".join(f"{c} {v:.2f}" for c, v in sorted(moy.items(), key=lambda kv: -kv[1])[:3])
-        if id(s) in rangs:
-            sec, r, total = rangs[id(s)]
-            etat = f"section {sec}, rang {r}/{total} ({'AFFICHÉ' if r <= nb[sec] else 'hors des ' + str(nb[sec]) + ' premiers'})"
-        elif max(moy.values()) < seuil:
-            etat = f"ÉCARTÉ : aucun thème assez proche (meilleur {max(moy.values()):.2f} < seuil {seuil})"
-        else:
-            etat = "ÉCARTÉ : aucune section pour ce thème et cette portée"
-        titre = max(s.articles, key=lambda a: a.langue == "fr").titre
-        autres = "; ".join(a.titre[:50] for a in s.articles if a.titre != titre)[:200]
-        lignes.append(f"{titre[:90]} | {len(s.sources)} médias | thèmes : {top} | {etat}"
-                      + (f" | regroupé avec : {autres}" if autres else ""))
-    print(f"\n=== Diagnostic « {motif} » : {len(touches)} articles, {len(lignes)} sujets ===")
-    for l in lignes:
-        print(l)
+            texte = ""
+            if lus:
+                extraire_texte(lus[0], config["general"]["max_caracteres_article"])
+                texte = f", texte {len(lus[0].texte)} car." + (" (paywall)" if lus[0].paywall else "")
+            ligne = f"{'OK' if lus else 'ÉCHEC'} {s['nom']} : {len(lus)} articles{texte}"
+            print(ligne, f["url"])
+            lignes.append(ligne)
     if os.getenv("GITHUB_ACTIONS"):
-        print(f"::notice::Diagnostic « {motif} » : {len(touches)} articles trouvés, {len(lignes)} sujets")
-        for l in lignes[:8]:  # GitHub n'affiche qu'un nombre limité d'annotations
-            print(f"::notice::{l}")
+        # GitHub limite le nombre d'annotations : on regroupe tout en quelques lignes
+        for i in range(0, len(lignes), 12):
+            print("::notice::" + " | ".join(lignes[i:i + 12]))
 
 
 def decouvrir_flux(urls: list[str]) -> None:

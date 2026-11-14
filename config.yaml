@@ -97,6 +97,7 @@ sources:
     paywall: false
     flux:
       - url: https://www.lapresse.ca/actualites/rss
+      - url: https://www.lapresse.ca/actualites/grand-montreal/rss
       - url: https://www.lapresse.ca/actualites/politique/rss
         theme: politique
       - url: https://www.lapresse.ca/affaires/rss
@@ -130,6 +131,52 @@ sources:
     flux:
       - url: https://www.tvanouvelles.ca/rss.xml
 
+  - nom: Journal de Québec
+    langue: fr
+    paywall: false
+    flux:
+      - url: https://www.journaldequebec.com/rss.xml
+
+  - nom: 24 heures
+    langue: fr
+    paywall: false
+    flux:
+      - url: https://www.24heures.ca/rss.xml
+
+  - nom: Métro
+    langue: fr
+    paywall: false
+    flux:
+      - url: https://journalmetro.com/feed/
+
+  - nom: L'actualité
+    langue: fr
+    paywall: false
+    flux:
+      - url: https://lactualite.com/feed/
+
+  - nom: Noovo Info
+    langue: fr
+    paywall: false
+    flux:
+      - type: page
+        url: https://www.noovo.info
+        motif: '/nouvelles/(?:[a-z0-9-]+/)?article/[a-z0-9-]+/?'
+
+  - nom: CityNews Montréal
+    langue: en
+    paywall: false
+    flux:
+      - url: https://montreal.citynews.ca/feed/
+
+  - nom: CTV News Montréal
+    langue: en
+    paywall: false
+    flux:
+      - type: page
+        url: https://www.ctvnews.ca/montreal
+        motif: '/montreal/article/[a-z0-9-]+/?'
+
   - nom: CBC News
     langue: en
     paywall: false
@@ -150,6 +197,7 @@ sources:
     paywall: false
     flux:
       - url: https://globalnews.ca/canada/feed/
+      - url: https://globalnews.ca/montreal/feed/
       - url: https://globalnews.ca/politics/feed/
         theme: politique
       - url: https://globalnews.ca/money/feed/
