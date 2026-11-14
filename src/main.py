@@ -64,7 +64,9 @@ def diagnostiquer(motif: str, articles: list, sujets: list, config: dict) -> Non
         else:
             etat = "ÉCARTÉ : aucune section pour ce thème et cette portée"
         titre = max(s.articles, key=lambda a: a.langue == "fr").titre
-        lignes.append(f"{titre[:90]} | {len(s.sources)} médias | thèmes : {top} | {etat}")
+        autres = "; ".join(a.titre[:50] for a in s.articles if a.titre != titre)[:200]
+        lignes.append(f"{titre[:90]} | {len(s.sources)} médias | thèmes : {top} | {etat}"
+                      + (f" | regroupé avec : {autres}" if autres else ""))
     print(f"\n=== Diagnostic « {motif} » : {len(touches)} articles, {len(lignes)} sujets ===")
     for l in lignes:
         print(l)
@@ -96,7 +98,10 @@ def main() -> None:
 
     enc = Encodeur(config["modeles"]["embeddings"])
     classer_themes(articles, enc.encoder([a.texte_court() for a in articles]), config, enc)
-    sujets = regrouper(articles, enc.encoder([a.titre for a in articles]), g["seuil_regroupement"])
+    # Le chapeau aide à reconnaître un même événement décrit par des titres très différents
+    textes = [a.titre if g.get("regrouper_sur") == "titre" else f"{a.titre}. {a.chapeau[:300]}"
+              for a in articles]
+    sujets = regrouper(articles, enc.encoder(textes), g["seuil_regroupement"])
     if args.diagnostic:
         return diagnostiquer(args.diagnostic, articles, sujets, config)
     par_theme = selectionner(sujets, config)
