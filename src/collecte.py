@@ -31,6 +31,7 @@ class Article:
     paywall: bool
     indice_theme: str | None = None
     texte: str = ""
+    extraction: str = ""  # état de la récupération du texte complet (pour le diagnostic)
     themes: dict = field(default_factory=dict)  # id -> score
 
     def texte_court(self) -> str:
@@ -222,9 +223,12 @@ def extraire_texte(article: Article, max_car: int) -> None:
         texte = ""
         if r.status_code == 200:
             texte = trafilatura.extract(r.text, include_comments=False, include_tables=False) or ""
+        article.extraction = f"HTTP {r.status_code}, page {len(r.text)} car., texte extrait {len(texte)} car."
         if page_bloquee(texte):
+            article.extraction += " (page de blocage)"
             texte = ""
     except Exception as e:  # le texte complet est un bonus : on continue avec le chapeau
         log.debug("Extraction échouée %s : %s", article.lien, e)
+        article.extraction = f"erreur : {str(e)[:80]}"
         texte = ""
     article.texte = (texte or article.chapeau)[:max_car]
