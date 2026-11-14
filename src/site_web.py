@@ -26,6 +26,7 @@ def vers_dict(s: Sujet) -> dict:
         "chapeau": s.chapeau,
         "points": s.points,
         "texte": s.resume,
+        "breve": s.breve,
         "sources": [
             {"nom": a.source, "titre": a.titre, "lien": a.lien, "langue": a.langue,
              "publie": a.publie.isoformat()}
@@ -68,6 +69,9 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
             )
             nb = len(par_media)
             badge = f'<span class="badge">{nb} médias</span>' if nb > 1 else ""
+            if s.get("breve"):
+                badge += ('<span class="badge breve" title="Les médias n\'ont publié qu\'un titre et '
+                          'quelques lignes sur ce sujet : le résumé est volontairement court">Brève</span>')
             chapeau = f'<p class="chapeau">{e(s["chapeau"])}</p>' if s["chapeau"] else ""
             points = ("<ul class=\"points\">" + "".join(f"<li>{e(p)}</li>" for p in s["points"]) + "</ul>") if s["points"] else ""
             paragraphes = "".join(f"<p>{e(p.strip())}</p>" for p in s["texte"].split("\n") if p.strip())

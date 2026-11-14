@@ -20,7 +20,7 @@ from deepseek import DeepSeek
 from editorial import editorialiser
 from regional import Regional
 from jeton import avis_jeton
-from resume import Resumeur, resume_sans_ia
+from resume import SEUIL_PEU_DE_MATIERE, Resumeur, resume_sans_ia
 from site_web import generer
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -219,6 +219,12 @@ def main() -> None:
         else:
             for s in sujets:
                 resume_sans_ia(s)
+
+    # « Brève » : les médias n'ont fourni qu'un titre et quelques lignes (paywall, accès refusé)
+    for s in {id(s): s for lst in par_theme.values() for s in lst}.values():
+        matiere = sum(len(a.texte or a.chapeau) for a in s.articles)
+        paragraphes = [p for p in s.resume.split("\n") if p.strip()]
+        s.breve = bool(s.titre) and (matiere < SEUIL_PEU_DE_MATIERE or len(paragraphes) <= 1)
 
     ecartes = sum(s.ignorer for lst in par_theme.values() for s in lst)
     for sec in config["sections"]:

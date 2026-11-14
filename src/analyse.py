@@ -58,6 +58,7 @@ class Sujet:
     ignorer: bool = False
     non_resume: bool = False  # réserve qui n'a pas servi
     score_regional: float = 0.0
+    breve: bool = False  # peu de matière disponible : résumé volontairement court
 
     @property
     def sources(self) -> set[str]:
