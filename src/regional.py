@@ -35,6 +35,11 @@ class Regional:
         texte = self._texte(s)
         return max((poids for motif, poids, _ in self.villes if motif.search(texte)), default=0.0)
 
+    def ville_mentionnee(self, s: Sujet) -> bool:
+        """Mentionne une ville de la Rive-Sud ou de la Montérégie (pas seulement Montréal)."""
+        texte = self._texte(s)
+        return any(adm and motif.search(texte) for motif, _, adm in self.villes)
+
     def admissible(self, s: Sujet) -> bool:
         """Publié par un média régional, ou mentionne une ville de la Rive-Sud ou de la Montérégie
         (une simple mention de Montréal ne suffit pas : les grands médias y sont tous basés)."""

@@ -43,14 +43,18 @@ def editorialiser(sujets: list[Sujet], config: dict, ds: DeepSeek) -> dict[str, 
         "en français ou en anglais). Ta tâche :\n"
         "1. Regroupe les numéros qui racontent le MÊME événement, même si les titres sont très "
         "différents ou dans des langues différentes.\n"
-        f"2. Pour chaque événement, choisis de 0 à {max_sec} sections dans la liste ci-dessous, "
+        f"2. Pour chaque événement, choisis de 0 à {max_sec} sections thématiques dans la liste ci-dessous, "
         "la plus pertinente en premier. Ajoute une seconde section seulement si l'événement la "
         "concerne vraiment (ex. une manifestation étudiante avec affrontements policiers : "
         "societe puis securite). Laisse la liste vide pour les sports, les spectacles, la "
         "météo, les faits divers mineurs et ce qui ne concerne pas le Canada ou le Québec. "
-        "Exception : pour la section regional, garde aussi les nouvelles locales, même petites "
-        "(accidents, circulation, conseils municipaux, écoles, commerces), et combine-la avec une "
-        "section thématique si l'événement le justifie.\n"
+        "La section regional s'AJOUTE aux sections thématiques, elle ne les remplace pas : une "
+        "nouvelle de la région qui a une portée plus large reçoit aussi sa ou ses sections "
+        "thématiques (ex. une grève étudiante avec affrontements policiers à Montréal et sur la "
+        "Rive-Sud : societe, securite et regional). Pour la section regional, garde aussi les "
+        "nouvelles locales, même petites (accidents, circulation, conseils municipaux, écoles, "
+        "commerces), mais pas les nouvelles nationales simplement reprises par un média régional, "
+        "ni les publireportages (palmarès d'entreprises, publicités).\n"
         "3. Donne une importance de 1 (mineur) à 5 (majeur) pour le public québécois.\n"
         "4. Pour les événements de la section regional, ajoute theme_regional parmi : securite, "
         "circulation, politique, economie, sante, education, autre.\n\n"
@@ -67,13 +71,19 @@ def editorialiser(sujets: list[Sujet], config: dict, ds: DeepSeek) -> dict[str, 
     deja = set()
     for ev in reponse.get("evenements", []):
         ids = [i for i in ev.get("ids", []) if isinstance(i, int) and 0 <= i < len(candidats) and i not in deja]
-        secs = [x for x in ev.get("sections", []) if x in valides][:max_sec]
+        # Jusqu'à max_sec sections thématiques, plus la section régionale le cas échéant
+        brutes = [x for x in ev.get("sections", []) if x in valides]
+        secs = [x for x in brutes if not reg or x != reg.section][:max_sec]
+        if reg and reg.section in brutes:
+            secs.append(reg.section)
         if not ids:
             continue
         articles = [a for i in ids for a in candidats[i].articles]
         s = Sujet(articles=articles)
-        if reg and reg.section not in secs and reg.admissible(s) and len(secs) < max_sec + 1:
-            secs.append(reg.section)  # nouvelle locale que l'IA n'a pas classée dans la section régionale
+        # Les médias régionaux couvrent aussi l'actualité nationale : seule la mention d'une ville
+        # de la région ajoute d'office la section régionale; sinon on suit le choix de l'IA
+        if reg and reg.section not in secs and reg.ville_mentionnee(s):
+            secs.append(reg.section)
         if not secs:
             continue
         deja.update(ids)
