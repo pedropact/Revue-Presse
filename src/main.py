@@ -97,12 +97,49 @@ def diagnostiquer(motif: str, articles: list, sujets: list, config: dict, editor
             print(f"::notice::{l}")
 
 
+def decouvrir_flux(urls: list[str]) -> None:
+    """Cherche les flux RSS d'un site (balises <link> et chemins habituels) et les teste."""
+    import re
+    from datetime import datetime, timezone
+    from urllib.parse import urljoin, urlparse
+
+    import requests
+
+    from collecte import UA
+
+    debut = datetime(2000, 1, 1, tzinfo=timezone.utc)
+    for url in urls:
+        candidats = []
+        try:
+            page = requests.get(url, headers={"User-Agent": UA}, timeout=20).text
+            for balise in re.findall(r"<link[^>]+>", page, re.I):
+                if re.search(r"(rss|atom)\+xml", balise, re.I):
+                    m = re.search(r'href=["\']([^"\']+)', balise)
+                    if m:
+                        candidats.append(urljoin(url, m.group(1)))
+        except Exception as e:
+            print(f"::warning::{url} inaccessible : {e}")
+        base = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+        candidats += [url.rstrip("/") + "/feed/", url.rstrip("/") + "/rss", base + "/feed/", base + "/rss.xml", base + "/rss"]
+        resultats = []
+        for c in dict.fromkeys(candidats):
+            n = len(lire_flux({"nom": "test", "langue": "fr"}, {"url": c}, debut))
+            if n:
+                resultats.append(f"{c} ({n} articles)")
+        message = f"{url} → " + ("; ".join(resultats) if resultats else "AUCUN FLUX RSS TROUVÉ")
+        print(message)
+        if os.getenv("GITHUB_ACTIONS"):
+            print("::notice::" + message[:900])
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--config", default=RACINE / "config.yaml", type=Path)
     p.add_argument("--sortie", default=RACINE / "public", type=Path)
     p.add_argument("--sans-ia", action="store_true")
     p.add_argument("--verifier-flux", action="store_true")
+    p.add_argument("--decouvrir-flux", nargs="+", metavar="URL",
+                   help="cherche et teste les flux RSS de ces sites, sans publier")
     p.add_argument("--diagnostic", metavar="MOTIF",
                    help="explique ce qui est arrivé aux articles contenant ce motif, sans publier")
     args = p.parse_args()
@@ -111,6 +148,8 @@ def main() -> None:
     config = yaml.safe_load(args.config.read_text("utf-8"))
     if args.verifier_flux:
         return verifier_flux(config)
+    if args.decouvrir_flux:
+        return decouvrir_flux(args.decouvrir_flux)
     g = config["general"]
 
     articles = collecter(config)
