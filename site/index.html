@@ -83,6 +83,12 @@
 
   .sources { margin:12px 0 0; font-size:.78rem; color:var(--doux); }
   .sources a { color:var(--doux); }
+  .pied-section { display:flex; justify-content:space-between; align-items:center; gap:12px;
+                  margin:2px 4px 18px; }
+  .pied-section button, .pied-section a { font:inherit; font-size:.82rem; font-weight:600;
+                  color:var(--accent); background:none; border:none; padding:8px 2px; cursor:pointer;
+                  text-decoration:none; }
+  html { scroll-behavior:smooth; }
   .avis { margin:16px 0 0; padding:12px 14px; border-radius:12px; font-size:.88rem; line-height:1.45;
           background:var(--accent-doux); color:var(--texte); border:1px solid var(--accent); }
   .vide { color:var(--doux); font-style:italic; margin:0 4px; }
@@ -90,7 +96,7 @@
 </style>
 </head>
 <body>
-<header>
+<header id="haut">
   <div class="surtitre">Québec · Canada</div>
   <h1>Revue de presse</h1>
   <p>{{DATE}} · mise à jour à {{HEURE}}</p>
@@ -120,6 +126,15 @@
   sections.forEach((s) => s.addEventListener("toggle", memoriser));
   document.getElementById("tout-ouvrir").onclick = () => sections.forEach((s) => (s.open = true));
   document.getElementById("tout-fermer").onclick = () => sections.forEach((s) => (s.open = false));
+
+  // Bouton en bas de chaque section : la replie et remonte à son titre
+  document.querySelectorAll(".replier").forEach((b) =>
+    b.addEventListener("click", () => {
+      const section = b.closest("details.section");
+      section.open = false;
+      section.scrollIntoView({ block: "start" });
+    })
+  );
 
   // Un clic dans le menu ouvre la section visée avant d'y défiler
   document.querySelectorAll("nav a").forEach((a) =>

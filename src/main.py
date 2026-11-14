@@ -18,6 +18,7 @@ from analyse import Encodeur, classer_themes, regrouper, selectionner
 from collecte import collecter, extraire_texte, lire_flux
 from deepseek import DeepSeek
 from editorial import editorialiser
+from regional import Regional
 from jeton import avis_jeton
 from resume import Resumeur, resume_sans_ia
 from site_web import generer
@@ -177,6 +178,10 @@ def main() -> None:
         return diagnostiquer(args.diagnostic, articles, sujets, config, par_theme)
     if par_theme is None:
         par_theme = selectionner(sujets, config)
+        if "regional" in config:
+            reg = Regional(config)
+            sec = next(x for x in config["sections"] if x["id"] == reg.section)
+            par_theme[reg.section] = reg.section_par_similarite(sujets, sec["nb"] + g.get("reserve_par_section", 0))
     retenus = [s for lst in par_theme.values() for s in lst]
 
     # Texte complet seulement pour les sujets retenus (beaucoup moins de requêtes)

@@ -57,6 +57,7 @@ class Sujet:
     resume: str = ""
     ignorer: bool = False
     non_resume: bool = False  # réserve qui n'a pas servi
+    score_regional: float = 0.0
 
     @property
     def sources(self) -> set[str]:

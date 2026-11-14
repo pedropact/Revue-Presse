@@ -82,7 +82,9 @@ def generer(par_theme: dict[str, list[Sujet]], config: dict, sortie: Path, model
         nb_sujets = f'<span class="compte">{len(cartes)}</span>' if cartes else ""
         sections.append(
             f'<details class="section" id="{t["id"]}"><summary><h2>{e(t["titre"])}</h2>{nb_sujets}'
-            f'<span class="chevron" aria-hidden="true"></span></summary>{contenu}</details>'
+            f'<span class="chevron" aria-hidden="true"></span></summary>{contenu}'
+            '<div class="pied-section"><button type="button" class="replier">Replier la section ↑</button>'
+            '<a href="#haut" class="haut">Haut de page ⤒</a></div></details>'
         )
 
     heure = maintenant.astimezone(FUSEAU).strftime("%H h %M")

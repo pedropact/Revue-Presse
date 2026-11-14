@@ -126,6 +126,7 @@ sources:
 #               tous    -> Canada et Québec confondus
 #   nb        : nombre de sujets affichés
 sections:
+  - {id: regional,         court: "Régional",         titre: "Rive-Sud, Montérégie et Montréal",          categorie: regional,      portee: tous,   nb: 6}
   - {id: economie-canada, court: "Éco Canada",  titre: "Économie — Canada",                       categorie: economie,      portee: canada, nb: 3}
   - {id: economie-quebec, court: "Éco Québec",  titre: "Économie — Québec",                       categorie: economie,      portee: quebec, nb: 3}
   - {id: politique-canada, court: "Politique Canada", titre: "Canada — Gouvernement et politique",      categorie: politique,     portee: canada, nb: 3}
@@ -215,3 +216,24 @@ ancrage: [Canada, canadien, canadienne, Canadian, Québec, Quebec, québécois, 
 # S'il y a plus de marqueurs québécois que canadiens, le sujet va dans la section Québec.
 marqueurs_quebec: [Québec, Quebec, québécois, québécoise, québécoises, Montréal, Montreal, Laval, Gatineau, Sherbrooke, "Trois-Rivières", Saguenay, Longueuil, Lévis, Rimouski, "Assemblée nationale", CAQ, "Coalition avenir Québec", "Parti québécois", "Québec solidaire", "Hydro-Québec", "Santé Québec", SAAQ, "Caisse de dépôt", "Sûreté du Québec", SPVM, provincial, provinciale, "National Assembly"]
 marqueurs_canada: [Canada, canadien, canadienne, canadiens, Canadian, Canadians, Ottawa, fédéral, fédérale, federal, Communes, Commons, Parlement, Parliament, Sénat, Senate, "Bloc québécois", GRC, RCMP, Ontario, Alberta, "Colombie-Britannique", "British Columbia", Manitoba, Saskatchewan, Toronto, Vancouver, Calgary, Edmonton, Winnipeg]
+
+# Section régionale : quelles villes comptent le plus, et quels thèmes.
+# « admissible: false » : une simple mention ne suffit pas pour entrer dans la section
+# (les grands médias sont tous à Montréal), mais compte si un média régional en parle.
+regional:
+  section: regional
+  description: "nouvelles locales de Longueuil, Brossard, Boucherville, de la Rive-Sud, de la Montérégie et de Montréal"
+  villes:
+    - poids: 3
+      villes: [Longueuil, "Vieux-Longueuil", "Saint-Hubert", "Greenfield Park", LeMoyne, Brossard, Boucherville, "Rive-Sud", "South Shore", "Saint-Lambert", "Saint-Bruno-de-Montarville", "Saint-Bruno", RTL, "agglomération de Longueuil"]
+    - poids: 1.5
+      villes: [Montérégie, Monteregie, "Saint-Jean-sur-Richelieu", Granby, "Saint-Hyacinthe", Châteauguay, "Vaudreuil-Dorion", "Sorel-Tracy", "Salaberry-de-Valleyfield", Valleyfield, Chambly, Beloeil, "La Prairie", Candiac, "Sainte-Julie", Varennes, "Mont-Saint-Hilaire", Delson, "Saint-Constant", "Sainte-Catherine", Carignan, McMasterville, "Otterburn Park", "Saint-Basile-le-Grand", "Saint-Amable", Contrecœur, "Saint-Lazare", Mercier, Beauharnois, Cowansville, "Bromont"]
+    - poids: 0.5
+      admissible: false
+      villes: [Montréal, Montreal, SPVM, STM]
+  themes_prioritaires: [securite, circulation, politique, economie, sante, education]
+  poids_theme_prioritaire: 2.0
+  poids_autre_theme: 0.5
+  # Catégorie des sections thématiques -> thème régional
+  themes_par_categorie: {securite: securite, politique: politique, economie: economie, sante: sante, societe: education}
+  mots_circulation: [circulation, trafic, congestion, bouchon, entrave, "pont Jacques-Cartier", "pont Champlain", "pont Victoria", "pont-tunnel", "Louis-Hippolyte-La Fontaine", autoroute, "route 132", "route 116", "route 112", "A-10", "A-20", "A-30", "A-15", REM, exo, RTL, chantier, travaux, "transport en commun", traffic, bridge, highway, "road closure"]
