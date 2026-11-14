@@ -69,6 +69,7 @@ sources:
         url: https://ici.radio-canada.ca/regions/montreal-environs
         # Articles récents : /info/2xxxxxx/titre (les numéros plus anciens sont des pages permanentes)
         motif: '(?:https://ici\.radio-canada\.ca)?/info/2\d{6}/[a-z0-9-]+'
+        remplacer: ["/info/", "/nouvelle/"]
 
   - nom: Noovo Info Montérégie
     langue: fr

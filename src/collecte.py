@@ -112,7 +112,10 @@ def lire_page(source: dict, flux: dict, limite: datetime) -> list[Article]:
         log.warning(detail)
         if os.getenv("GITHUB_ACTIONS"):
             print("::warning::" + detail[:900])
-    liens = list(dict.fromkeys(urljoin(url, l) for l in trouves))[: flux.get("max", 20)]
+    # Certains sites listent une adresse interne : « remplacer » donne la vraie adresse de l'article
+    avant, apres = flux.get("remplacer", ["", ""])
+    liens = list(dict.fromkeys(urljoin(url, l.replace(avant, apres) if avant else l) for l in trouves))
+    liens = liens[: flux.get("max", 20)]
     with ThreadPoolExecutor(max_workers=6) as ex:
         lus = [a for a in ex.map(lambda l: lire_article_page(source, flux, l), liens) if a]
     if liens and not lus and os.getenv("GITHUB_ACTIONS"):
