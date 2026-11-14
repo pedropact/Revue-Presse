@@ -13,6 +13,10 @@ on:
         description: "Diagnostic seulement (rien n'est publié) : mots à rechercher, ex. étudiant|manifestation"
         type: string
         default: ""
+      verifier_flux:
+        description: "Tester tous les flux configurés, sans publier"
+        type: boolean
+        default: false
       decouvrir_flux:
         description: "Chercher les flux RSS de ces sites (adresses séparées par des espaces), sans publier"
         type: string
@@ -59,7 +63,9 @@ jobs:
           DIAGNOSTIC: ${{ inputs.diagnostic }}
           DECOUVRIR: ${{ inputs.decouvrir_flux }}
         run: |
-          if [ -n "$DECOUVRIR" ]; then
+          if [ "${{ inputs.verifier_flux }}" = "true" ]; then
+            python src/main.py --verifier-flux
+          elif [ -n "$DECOUVRIR" ]; then
             python src/main.py --decouvrir-flux $DECOUVRIR
           elif [ -n "$DIAGNOSTIC" ]; then
             python src/main.py --diagnostic "$DIAGNOSTIC"
@@ -68,7 +74,7 @@ jobs:
           fi
 
       - name: Publier sur Cloudflare Pages
-        if: inputs.diagnostic == '' && inputs.decouvrir_flux == ''
+        if: inputs.diagnostic == '' && inputs.decouvrir_flux == '' && !inputs.verifier_flux
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

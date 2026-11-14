@@ -35,6 +35,50 @@ modeles:
 # paywall: true  -> on n'utilise que le titre et le chapeau fournis par le flux RSS
 # theme: (optionnel) indice de thème pour un flux de section, donne un léger bonus
 sources:
+  # --- Médias régionaux (Rive-Sud, Montérégie, Montréal) : « regional: true » les rend
+  # admissibles à la section régionale. Ils sont listés en premier pour qu'un article présent
+  # aussi dans un flux national garde son étiquette régionale.
+  - nom: FM 103,3
+    langue: fr
+    paywall: false
+    regional: true
+    flux:
+      - url: https://www.fm1033.ca/feed/
+
+  - nom: Le Courrier du Sud
+    langue: fr
+    paywall: false
+    regional: true
+    flux:
+      - url: https://lecourrierdusud.ca/feed/
+
+  - nom: TVA Nouvelles Montérégie
+    langue: fr
+    paywall: false
+    regional: true
+    flux:
+      - url: https://www.tvanouvelles.ca/regional/tva-montreal/monteregie/rss.xml
+
+  # Sites sans flux RSS : lecture de la page de la rubrique (type: page)
+  - nom: Radio-Canada Montréal
+    langue: fr
+    paywall: false
+    regional: true
+    flux:
+      - type: page
+        url: https://ici.radio-canada.ca/regions/montreal-environs
+        motif: '(?:https://ici\.radio-canada\.ca)?/nouvelle/\d{6,}/[a-z0-9-]+'
+
+  - nom: Noovo Info Montérégie
+    langue: fr
+    paywall: false
+    regional: true
+    flux:
+      - type: page
+        url: https://www.noovo.info/regions/monteregie/
+        motif: '/nouvelles/[a-z0-9-]+/article/[a-z0-9-]+/?'
+
+  # --- Médias nationaux et québécois
   - nom: Radio-Canada
     langue: fr
     paywall: false

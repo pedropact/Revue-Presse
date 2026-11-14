@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
+from urllib.parse import urljoin
 
 import feedparser
 import requests
@@ -55,7 +56,64 @@ def date_entree(entree) -> datetime | None:
     return None
 
 
+def _meta(page: str, nom: str) -> str:
+    """Contenu d'une balise <meta property|name="nom" content="..."> (ordre des attributs libre)."""
+    for balise in re.findall(r"<meta[^>]+>", page, re.IGNORECASE):
+        if re.search(rf'(property|name|itemprop)=["\']{re.escape(nom)}["\']', balise, re.IGNORECASE):
+            m = re.search(r'content=["\']([^"\']*)', balise)
+            if m:
+                return html.unescape(m.group(1)).strip()
+    return ""
+
+
+def lire_article_page(source: dict, flux: dict, url: str) -> Article | None:
+    try:
+        r = requests.get(url, headers={"User-Agent": UA}, timeout=TIMEOUT)
+        r.raise_for_status()
+    except requests.RequestException as e:
+        log.debug("Article inaccessible %s : %s", url, e)
+        return None
+    page = r.text
+    titre = _meta(page, "og:title")
+    if not titre:
+        return None
+    date = _meta(page, "article:published_time") or _meta(page, "datePublished")
+    if not date:
+        m = re.search(r'"datePublished"\s*:\s*"([^"]+)"', page)
+        date = m.group(1) if m else ""
+    try:
+        publie = datetime.fromisoformat(date.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        publie = datetime.now(timezone.utc)  # date inconnue : on la considère comme récente
+    return Article(
+        source=source["nom"], langue=source.get("langue", "fr"), titre=nettoyer(titre),
+        chapeau=nettoyer(_meta(page, "og:description")), lien=url, publie=publie,
+        paywall=source.get("paywall", False), indice_theme=flux.get("theme"),
+    )
+
+
+def lire_page(source: dict, flux: dict, limite: datetime) -> list[Article]:
+    """Pour un site sans flux RSS : repère les liens d'articles dans la page de la rubrique
+    (y compris dans le code JavaScript de la page) et lit le titre et la date de chacun."""
+    url = flux["url"]
+    try:
+        r = requests.get(url, headers={"User-Agent": UA}, timeout=TIMEOUT)
+        r.raise_for_status()
+    except requests.RequestException as e:
+        log.warning("Page inaccessible %s : %s", url, e)
+        return []
+    trouves = re.findall(flux["motif"], r.text.replace("\\/", "/"))
+    liens = list(dict.fromkeys(urljoin(url, l) for l in trouves))[: flux.get("max", 20)]
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        lus = [a for a in ex.map(lambda l: lire_article_page(source, flux, l), liens) if a]
+    articles = [a for a in lus if a.publie >= limite]
+    log.info("%-20s %3d articles  %s (page, %d liens)", source["nom"], len(articles), url, len(liens))
+    return articles
+
+
 def lire_flux(source: dict, flux: dict, limite: datetime) -> list[Article]:
+    if flux.get("type") == "page":
+        return lire_page(source, flux, limite)
     url = flux["url"]
     try:
         r = requests.get(url, headers={"User-Agent": UA}, timeout=TIMEOUT)

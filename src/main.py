@@ -32,8 +32,12 @@ def verifier_flux(config: dict) -> None:
     debut = datetime(2000, 1, 1, tzinfo=timezone.utc)
     for s in config["sources"]:
         for f in s["flux"]:
-            n = len(lire_flux(s, f, debut))
-            print(f"{'OK ' if n else 'ÉCHEC'} {n:3d}  {s['nom']:<20} {f['url']}")
+            lus = lire_flux(s, f, debut)
+            ligne = (f"{'OK' if lus else 'ÉCHEC'} {len(lus):3d}  {s['nom']} {f['url']}"
+                     + (f" — 1er : « {lus[0].titre[:60]} »" if lus else ""))
+            print(ligne)
+            if os.getenv("GITHUB_ACTIONS") and (s.get("regional") or not lus):
+                print("::notice::" + ligne)
 
 
 def diagnostiquer(motif: str, articles: list, sujets: list, config: dict, editorial: dict | None = None) -> None:
