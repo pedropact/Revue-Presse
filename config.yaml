@@ -131,6 +131,7 @@ sections:
   - {id: sante, court: "Santé",            titre: "Santé — Canada et Québec",                categorie: sante,         portee: tous,   nb: 3}
   - {id: environnement, court: "Environnement",    titre: "Environnement — Canada et Québec",        categorie: environnement, portee: tous,   nb: 3}
   - {id: immigration, court: "Immigration",      titre: "Immigration — Canada et Québec",          categorie: immigration,   portee: tous,   nb: 3}
+  - {id: societe, court: "Société",  titre: "Société et éducation — Québec et Canada",   categorie: societe,       portee: tous,   nb: 3}
   - {id: securite, court: "Sécurité",         titre: "Sécurité — Canada et Québec",             categorie: securite,      portee: tous,   nb: 3}
   - {id: technologie, court: "Techno",  titre: "Technologie — Canada et Québec",          categorie: technologie,   portee: tous,   nb: 3}
 
@@ -180,6 +181,15 @@ categories:
       - Demandeurs d'asile, réfugiés, permis de travail, résidence permanente, citoyenneté, francisation
       - Immigration to Canada, asylum seekers, refugees, temporary foreign workers, international students, permanent residency
     mots_cles: [immigration, immigrants, "demandeurs d'asile", réfugiés, "travailleurs étrangers", "étudiants étrangers", "résidence permanente", citoyenneté, IRCC, asylum, refugees, "foreign workers", "permanent resident"]
+
+  - id: societe
+    descriptions:
+      - Éducation au Québec et au Canada, écoles, cégeps, universités, étudiants, enseignants, frais de scolarité, prêts et bourses
+      - Manifestations, grèves étudiantes, mouvements sociaux, syndicats, conflits de travail, protestations contre l'austérité
+      - Société et vie quotidienne, logement, itinérance, pauvreté, coût de la vie, familles, culture et langue française
+      - Education in Canada, schools, universities, students, teachers, tuition, student protests, strikes, unions, housing, homelessness
+    mots_cles: [éducation, école, cégep, université, étudiants, étudiante, enseignants, "frais de scolarité", "prêts et bourses", manifestation, manifestants, grève, syndicat, "conflit de travail", austérité, logement, itinérance, pauvreté, "langue française", education, school, university, students, teachers, tuition, protest, protesters, strike, union, housing, homelessness]
+    ancrage_requis: true
 
   - id: securite
     descriptions:
