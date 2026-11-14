@@ -115,6 +115,13 @@ def lire_page(source: dict, flux: dict, limite: datetime) -> list[Article]:
     liens = list(dict.fromkeys(urljoin(url, l) for l in trouves))[: flux.get("max", 20)]
     with ThreadPoolExecutor(max_workers=6) as ex:
         lus = [a for a in ex.map(lambda l: lire_article_page(source, flux, l), liens) if a]
+    if liens and not lus and os.getenv("GITHUB_ACTIONS"):
+        try:
+            test = requests.get(liens[0], headers={"User-Agent": UA}, timeout=TIMEOUT)
+            etat = f"HTTP {test.status_code}, og:title « {_meta(test.text, 'og:title')[:50]} »"
+        except requests.RequestException as e:
+            etat = str(e)[:150]
+        print(f"::warning::{len(liens)} liens trouvés sur {url} mais aucun article lu ; 1er lien {liens[0]} : {etat}")
     articles = [a for a in lus if a.publie >= limite]
     log.info("%-20s %3d articles  %s (page, %d liens)", source["nom"], len(articles), url, len(liens))
     return articles
