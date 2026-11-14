@@ -102,7 +102,16 @@ def lire_page(source: dict, flux: dict, limite: datetime) -> list[Article]:
     except requests.RequestException as e:
         log.warning("Page inaccessible %s : %s", url, e)
         return []
-    trouves = re.findall(flux["motif"], r.text.replace("\\/", "/"))
+    # Les liens peuvent être encodés dans le JavaScript de la page (« \/ » ou « \u002F »)
+    texte = r.text.replace("\\u002F", "/").replace("\\u002f", "/").replace("\\/", "/")
+    trouves = re.findall(flux["motif"], texte)
+    if not trouves:
+        detail = (f"Aucun lien d'article trouvé sur {url} (HTTP {r.status_code}, {len(r.text)} caractères, "
+                  f"{r.text.count('nouvelle')} mentions de « nouvelle », extrait : "
+                  + " ".join(re.findall(r"[\w/.:-]*nouvelle[\w/.:-]*", r.text)[:5]) + ")")
+        log.warning(detail)
+        if os.getenv("GITHUB_ACTIONS"):
+            print("::warning::" + detail[:900])
     liens = list(dict.fromkeys(urljoin(url, l) for l in trouves))[: flux.get("max", 20)]
     with ThreadPoolExecutor(max_workers=6) as ex:
         lus = [a for a in ex.map(lambda l: lire_article_page(source, flux, l), liens) if a]
